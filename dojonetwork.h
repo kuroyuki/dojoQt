@@ -1,10 +1,10 @@
 #ifndef DOJONETWORK_H
 #define DOJONETWORK_H
 
-#include <QObject>
 #include "dojo.h"
 
 //class dojoStorage;
+class dojoNeuron;
 class dojoServer;
 
 class dojoNetwork : public QObject

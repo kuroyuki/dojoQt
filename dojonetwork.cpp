@@ -92,6 +92,7 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
 
     //source is outside the current network
     if(!neurons.contains(source)){
+        //if no such target - cannot create synapse
         if(!neurons.contains(target)){
             return;
         }
@@ -111,6 +112,8 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
         dojoSynapse* syn = new dojoSynapse(LENGTH_CONST);
         neurons[target]->addSource(source, syn);
 
+        //storage->addSensor(sensor);
+
         return;
     }
     //target is outside the current network
@@ -126,9 +129,11 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
         act.address = QHostAddress::LocalHost;
         act.port = UDP_CLIENT_PORT;
         server->addActuator(source, act);
+
         return;
     }
 
+    //both IDs already exist in this network
     QVector3D diff = neurons[target]->getPosition() - neurons[source]->getAxonPosition();
     dojoSynapse* synapse = new dojoSynapse(diff.length());
 

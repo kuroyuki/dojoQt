@@ -1,11 +1,7 @@
 #ifndef DOJOSYNAPSE_H
 #define DOJOSYNAPSE_H
 
-#include <QVector3D>
-typedef int dojoID;
-
-#define LENGTH_CONST 0.5 //in mm
-#define TIME_CONST 50.0 // in ms
+#include "dojo.h"
 
 class dojoSynapse
 {

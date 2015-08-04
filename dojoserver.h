@@ -1,27 +1,7 @@
 #ifndef DOJOSERVER_H
 #define DOJOSERVER_H
 
-#include <QObject>
-#include <QUdpSocket>
-#include <QHash>
-#include <QTimer>
 #include "dojo.h"
-
-class dojoNeuron;
-
-struct dojoUdpSensor{
-    dojoID target;
-    QHostAddress address;
-    quint16 port;
-};
-struct dojoUdpAct{
-    dojoID source;
-    dojoID target;
-    QHostAddress address;
-    quint16 port;
-};
-
-class dojoActuator;
 
 class dojoServer : public QObject
 {

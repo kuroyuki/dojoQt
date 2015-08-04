@@ -1,7 +1,4 @@
 #include "dojosynapse.h"
-#include <QDateTime>
-#include <QDebug>
-#include "math.h"
 
 dojoSynapse::dojoSynapse(double len){
     cleft = 0;

@@ -1,11 +1,9 @@
 #ifndef DOJONEURON_H
 #define DOJONEURON_H
 
-#include <QVector3D>
-#include <QHash>
-#include <QDateTime>
 #include "dojo.h"
 
+class dojoSynapse;
 class dojoServer;
 
 class dojoNeuron

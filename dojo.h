@@ -1,10 +1,15 @@
 #ifndef DOJO
 #define DOJO
 
+#include <QObject>
 #include <QVector3D>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QHash>
+#include <QDateTime>
+#include <QTimer>
+#include <QUdpSocket>
 #include "math.h"
 
 typedef int dojoID;
@@ -22,6 +27,18 @@ typedef int dojoID;
 
 #define UDP_SERVER_PORT 25098
 #define UDP_CLIENT_PORT 26128
+
+struct dojoUdpSensor{
+    dojoID target;
+    QHostAddress address;
+    quint16 port;
+};
+struct dojoUdpAct{
+    dojoID source;
+    dojoID target;
+    QHostAddress address;
+    quint16 port;
+};
 
 #include "dojosynapse.h"
 #include "dojoneuron.h"
