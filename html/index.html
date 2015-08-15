@@ -1,0 +1,37 @@
+<html>
+  	<head>
+	    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+	    <title>dojo client</title>
+	    <style>
+			#mainScene {
+				background: #000;
+				width: 800px;
+				height: 600px;
+			}
+		</style>
+
+	    <script src="static/three.min.js"></script>   
+		<script src="static/jquery.min.js"></script>
+		
+	</head>
+
+	<body>
+		<div>
+			X:<input>
+			Y:<input>
+			Z:<input>
+			<button>Create Neuron</button>
+		</div>
+		<div id="mainScene">
+		</div>	
+	</body>	
+	<script src="dojoWsHandler.js"></script>   
+	<script src="dojoDrawing.js"></script>
+	<script type="text/javascript">
+
+		setupDrawScene();		
+		var wsUri = "ws://localhost:1234/";			
+		connectWebSocket(wsUri);
+	</script>
+
+</html> 
