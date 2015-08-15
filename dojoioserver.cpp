@@ -1,6 +1,6 @@
-#include "dojoserver.h"
+#include "dojoioserver.h"
 
-dojoServer::dojoServer(QObject *parent) : QObject(parent)
+dojoIOServer::dojoIOServer(QObject *parent) : QObject(parent)
 {
     //connect UDP
     udpSocket = new QUdpSocket(this);
@@ -10,13 +10,12 @@ dojoServer::dojoServer(QObject *parent) : QObject(parent)
     connect(udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotUdpError(QAbstractSocket::SocketError)));
 
 }
-void dojoServer::slotUdpError(QAbstractSocket::SocketError error){
+void dojoIOServer::slotUdpError(QAbstractSocket::SocketError error){
     QJsonObject json;
-    json.insert("server UDP error", error);
-    emit serverEvent(json);
+    json.insert("server UDP error", error);    
 }
 
-void dojoServer::slotUdpReadyRead(){
+void dojoIOServer::slotUdpReadyRead(){
     while (udpSocket->hasPendingDatagrams()) {
         QByteArray datagram;
         datagram.resize(udpSocket->pendingDatagramSize());
@@ -30,6 +29,7 @@ void dojoServer::slotUdpReadyRead(){
             if(sensors.contains(source)){
                 emit serverAp(source, sensors[source].target, value);
 
+                /*
                 QJsonObject json;
                 json.insert("command", "ap from outside");
                 json.insert("source", source);
@@ -38,6 +38,7 @@ void dojoServer::slotUdpReadyRead(){
                 json.insert("address", sensors[source].address.toString());
                 json.insert("port", sensors[source].port);
                 emit serverEvent(json);
+                */
             }
 
             datagram.remove(0,12);
@@ -45,7 +46,7 @@ void dojoServer::slotUdpReadyRead(){
     }
 }
 
-void dojoServer::ap(dojoID source, double terminals){
+void dojoIOServer::ap(dojoID source, double terminals){
     if(actuators.contains(source)){
         dojoUdpAct act = actuators[source];
 
@@ -56,33 +57,40 @@ void dojoServer::ap(dojoID source, double terminals){
         udpSocket->writeDatagram(datagram.data(), datagram.size(),
                                     act.address, act.port);
 
-        QJsonObject json;
+        /*QJsonObject json;
         json.insert("command", "ap to outside");
         json.insert("source", source);
         json.insert("target", (double)act.target);
         json.insert("data", QString(datagram));
         json.insert("address", act.address.toString());
         json.insert("port", act.port);
-        emit serverEvent(json);
+        emit serverEvent(json);*/
     }
 }
-void dojoServer::addActuator(dojoID source, dojoUdpAct actuator){
-    actuators.insert(source, actuator);
+void dojoIOServer::eventHandler(QJsonObject event){
+    QString command = event.take("command").toString();
+    if(command == "ao"){
+        dojoUdpAct actuator;
+        actuator.address = QHostAddress::LocalHost;
+        actuator.port = UDP_CLIENT_PORT;
+        actuator.target = event.take("target").toInt();
 
-    QJsonObject json;
-    json.insert("source", (double)source);
-    json.insert("target", (double)actuator.target);
-    json.insert("address", actuator.address.toString());
-    json.insert("port", actuator.port);
-    emit serverEvent(json);
-}
-void dojoServer::addSensor(dojoID source, dojoUdpSensor sensor){
-    sensors.insert(source, sensor);
+        actuators.insert(event.take("source").toInt(), actuator);
 
-    QJsonObject json;
-    json.insert("source", (double)source);
-    json.insert("target", (double)sensor.target);
-    json.insert("address", sensor.address.toString());
-    json.insert("port", sensor.port);
-    emit serverEvent(json);
+        qDebug()<<"dojoIO - add actuator";
+    }
+    else if(command == "ai"){
+        dojoUdpSensor sensor;
+        sensor.address = QHostAddress::LocalHost;
+        sensor.port = UDP_CLIENT_PORT;
+        sensor.target = event.take("target").toInt();
+
+        sensors.insert(event.take("source").toInt(), sensor);
+        qDebug()<<"dojoIO - add sensor";
+    }
+    else{
+        QJsonDocument  jdoc(event);
+        qDebug()<<"dojoIO  - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
+    }
 }
+

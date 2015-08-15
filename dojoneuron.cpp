@@ -43,7 +43,7 @@ void dojoNeuron::process(){
         for(int i=0;i<targets.size();i++){
             targets[i]->ap(id, axonTerminals);           
         }
-        //special send AP to dojoServer if it requires
+        //special send AP to dojoIOServer if it requires
         if(actuator)
             actuator->ap(id, axonTerminals);
 
@@ -59,10 +59,12 @@ void dojoNeuron::process(){
         //next check right now (in 2 ms)
         nextCheck = now+1;
 
+        /*
         //DEBUG
         QTime nowT = QDateTime::currentDateTime().time();
         qDebug()<<nowT.toString()<<':'<<nowT.msec()<<" AP "<<id<<':'<<synapticVoltage;
 
+        */
     }
     //pumping
     else{
@@ -89,7 +91,7 @@ void dojoNeuron::removeSource(dojoID source){
     if(sources.contains(source))
         sources.remove(source);
 }
-void dojoNeuron::addAct(dojoServer* server){
+void dojoNeuron::addAct(dojoIOServer* server){
     actuator = server;
 }
 void dojoNeuron::addTarget(dojoNeuron* target){

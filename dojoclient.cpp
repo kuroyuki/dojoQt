@@ -31,7 +31,7 @@ dojoClient::~dojoClient()
 void dojoClient::connectToServer(){
     qDebug()<<"connecting to dojo server"<<endl;
     udpSocket->bind(QHostAddress::LocalHost, UDP_CLIENT_PORT);
-    sendTimer->start(20);
+    sendTimer->start(10);
 }
 void dojoClient::registerInput(dojoID id, double* data){
 

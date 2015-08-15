@@ -2,51 +2,18 @@
 
 dojoStorage::dojoStorage(QString name, QObject *parent) : QObject(parent)
 {
-    QString filename = name+".dojo";
-    QFileInfo fileInfo(filename);
-    if(fileInfo.isFile()){
-        QJsonObject json;
-        json.insert("state", "already_exist");
-        emit storageEvent(json);
-    }
-
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(name+".dojo");
-
     if (db.open()) {
         QSqlQuery query;
+        query.exec("create table neurons (id int primary key,"
+                   "x real, y real, z real,"
+                   "axon_x real, axon_y real, axon_z real)");
 
-        QString str = "CREATE TABLE neurons ("
-                "id integer, "
-                "size real, "
-                "x real, "
-                "y real, "
-                "z real, "
-                "axon_x real, "
-                "axon_y real, "
-                "axon_z real, "
-                "dendrite_radius real"
-                ");";
-        bool b = query.exec(str);
-        if (!b) {
-            QJsonObject json;
-            json.insert("state", "neuron_table_is_not_created");
-            emit storageEvent(json);
-        }
-        else{
-            QString str = "CREATE TABLE synapses ("
-                    "source integer, "
-                    "target integer, "
-                    "permability real, "
-                    "sign bool"
-                    ");";
-            bool b = query.exec(str);
-            if (!b) {
-                QJsonObject json;
-                json.insert("state", "synapse_table_is_not_created");
-                emit storageEvent(json);
-            }            
-        }
+        query.exec("create table synapses (source int, target int, length real, permability real)");
+    }
+    else {
+        qDebug()<<"Cannot open database";
     }
 }
 
@@ -54,91 +21,99 @@ dojoStorage::~dojoStorage()
 {
     db.close();
 }
+void dojoStorage::eventHandler(QJsonObject event){
+    QString command = event.take("command").toString();
+    if(command == "an"){
+        qDebug()<<"dojoStorage - add neuron";
 
-void dojoStorage::addNeuron(dojoNeuron* neuron){
-    QSqlQuery query;
-    QString str = "INSERT INTO neurons(id, size, x, y, z, azon_x, axon_y, axon_z, dendrite_radius) "
-            "VALUES ("+
-            //QString::number(neuron->getID())+","+
-            //QString::number(neuron->getSize())+","+
-            QString::number(neuron->getPosition().x())+","+
-            QString::number(neuron->getPosition().y())+","+
-            QString::number(neuron->getPosition().z())+","+
-            QString::number(neuron->getAxonPosition().x())+","+
-            QString::number(neuron->getAxonPosition().y())+","+
-            QString::number(neuron->getAxonPosition().z())+","+
-            QString::number(0)+
-            ");";
+        QSqlQuery query;
+        query.prepare("INSERT INTO neurons (id, x, y, z, axon_x, axon_y, axon_z)"
+                      "VALUES (:id, :x, :y, :z, :axon_x, :axon_y, :axon_z)");
 
-    query.exec(str);
-}
+        query.bindValue(":id", event.take("id").toInt());
 
-dojoNeuron dojoStorage::getNeuron(dojoID id){
-    QSqlQuery query("SELECT * FROM neurons WHERE id = " + QString::number(id)+";");
+        QJsonObject pos = event.take("pos").toObject();
 
-    QSqlRecord rec = query.record();
+        query.bindValue(":x", pos.take("x").toDouble());
+        query.bindValue(":y", pos.take("y").toDouble());
+        query.bindValue(":z", pos.take("z").toDouble());
 
-    while (query.next()){
-        qDebug() << "id"<<query.value(0).toString()
-                 << "size"<<query.value(1).toString()
-                 << "x"<<query.value(rec.indexOf("x")).toString()
-                 << "y"<<query.value(rec.indexOf("y")).toString()
-                 << "z"<<query.value(rec.indexOf("z")).toString();
+        QJsonObject axon = event.take("axon").toObject();
+        query.bindValue(":axon_x", axon.take("x").toDouble());
+        query.bindValue(":axon_y", axon.take("y").toDouble());
+        query.bindValue(":axon_z", axon.take("z").toDouble());
+
+        query.exec();
     }
-    QVector3D pos(0,0,0);
-    QVector3D axon(1,2,3);
-    dojoNeuron newOne(id,pos, axon);
-    return newOne;
-}
+    else if(command == "as"){
+        qDebug()<<"dojoStorage - add synapse";        
 
-void dojoStorage::updateNeuron(dojoNeuron* neuron){
+        QSqlQuery query;
+        query.prepare("INSERT INTO synapses (source, target, length, permability)"
+                      "VALUES (:source, :target, :length, :permability)");
 
-}
+        query.bindValue(":source", event.take("source").toInt());
+        query.bindValue(":target", event.take("target").toInt());
+        query.bindValue(":length", event.take("length").toDouble());
+        query.bindValue(":permability",event.take("permability").toDouble());
 
-void dojoStorage::removeNeuron(dojoID id){
-    QJsonObject json;
-    json.insert("state", "neuron_removed");
-    json.insert("id", (double)id);
-    emit storageEvent(json);
-}
-
-void dojoStorage::addSynapse(dojoSynapse* synapse){
-    QSqlQuery query;
-    /*QString str = "INSERT INTO synapses(source, target, permability, sign) "
-            "VALUES ("+
-            QString::number(synapse->getSource()->getID())+","+
-            QString::number(synapse->getTarget()->getID())+","+
-            QString::number(synapse->getPermability())+","+
-            "true"+
-            ");";
-
-    query.exec(str);
-    */
-}
-/*
-dojoSynapse dojoStorage::getSynapse(dojoID source, dojoID target){
-    QSqlQuery query("SELECT * FROM synapses WHERE source = " + QString::number(source)+" target = "+ QString::number(target)+";");
-    QSqlRecord rec = query.record();
-
-    while (query.next()){
-        qDebug() << "id"<<query.value(0).toString()
-                 << "size"<<query.value(1).toString()
-                 << "x"<<query.value(rec.indexOf("x")).toString()
-                 << "y"<<query.value(rec.indexOf("y")).toString()
-                 << "z"<<query.value(rec.indexOf("z")).toString();
+        query.exec();
     }
-    return dojoChemicalSynapse();
+    else{
+        QJsonDocument  jdoc(event);
+        qDebug()<<"dojoStorage - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
+    }
 }
-*/
-void dojoStorage::updateSynapse(dojoSynapse* synapse){
+void dojoStorage::getCurrentTables(){
+    QSqlQuery query;
 
+    //get all neurons
+    query.exec("SELECT id, x, y, z, axon_x, axon_y, axon_z FROM neurons");
+    bool isContinue = true;
+    if(query.first()) {
+        while(isContinue){
+            QJsonObject json;
+            json.insert("command", "an");
+            json.insert("id", query.value(0).toInt());
+
+            QJsonObject posJson;
+            posJson.insert("x", query.value(1).toDouble());
+            posJson.insert("y", query.value(2).toDouble());
+            posJson.insert("z", query.value(3).toDouble());
+
+            QJsonObject axonJson;
+            axonJson.insert("x", query.value(4).toDouble());
+            axonJson.insert("y", query.value(5).toDouble());
+            axonJson.insert("z", query.value(6).toDouble());
+
+            json.insert("pos", posJson);
+            json.insert("axon", axonJson);
+
+            emit storageEvent(json);
+
+            if(!query.next())
+                isContinue = false;
+            else isContinue = true;
+        }
+    }
+    isContinue = true;
+
+    //get all syanpses
+    query.exec("SELECT source, target, length, permability FROM synapses");
+    if(query.first()) {
+        while(isContinue){
+            QJsonObject json;
+            json.insert("command", "as");
+            json.insert("source", query.value(0).toInt());
+            json.insert("target", query.value(1).toInt());
+            json.insert("length", query.value(2).toDouble());
+            json.insert("permability", query.value(3).toDouble());
+
+            emit storageEvent(json);
+
+            if(!query.next())
+                isContinue = false;
+            else isContinue = true;
+        }
+    }
 }
-
-void dojoStorage::removeSynapse(dojoID source, dojoID target){
-    QJsonObject json;
-    json.insert("state", "synapse_removed");
-    json.insert("source", (double)source);
-    json.insert("target", (double)target);
-    emit storageEvent(json);
-}
-

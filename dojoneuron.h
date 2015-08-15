@@ -4,7 +4,7 @@
 #include "dojo.h"
 
 class dojoSynapse;
-class dojoServer;
+class dojoIOServer;
 
 class dojoNeuron
 {
@@ -22,7 +22,7 @@ public:
     void addTarget(dojoNeuron* target);
     void removeTarget(dojoNeuron* target);
 
-    void addAct(dojoServer* server);
+    void addAct(dojoIOServer* server);
 
     qint64 getNextCheck(){return nextCheck;}
     dojoID getID(){return id;}
@@ -43,7 +43,7 @@ private:
     double size;
 
     qint64 nextCheck;
-    dojoServer* actuator;
+    dojoIOServer* actuator;
 };
 
 #endif // DOJONEURON_H

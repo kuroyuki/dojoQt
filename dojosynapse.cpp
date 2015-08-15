@@ -1,9 +1,9 @@
 #include "dojosynapse.h"
 
-dojoSynapse::dojoSynapse(double len){
+dojoSynapse::dojoSynapse(double len, double perm){
     cleft = 0;
     lastAction = QDateTime::currentMSecsSinceEpoch();
-    permability = 1;
+    permability = perm;
 
     length  = len;
 }
@@ -33,7 +33,7 @@ void dojoSynapse::changePermability(qint64 now){
 
     //icrease permability
     //if
-    qDebug()<<"time diff :"<<diff;
+    //qDebug()<<"time diff :"<<diff;
 }
 
 /*void dojoSynapse::updateLength(double new_length){

@@ -10,6 +10,9 @@
 #include <QDateTime>
 #include <QTimer>
 #include <QUdpSocket>
+#include <QtWebSockets/QWebSocketServer>
+#include <QtWebSockets/QWebSocket>
+#include <QtSql>
 #include "math.h"
 
 typedef int dojoID;
@@ -27,6 +30,7 @@ typedef int dojoID;
 
 #define UDP_SERVER_PORT 25098
 #define UDP_CLIENT_PORT 26128
+#define WS_SERVER_PORT 1234
 
 struct dojoUdpSensor{
     dojoID target;
@@ -42,8 +46,9 @@ struct dojoUdpAct{
 
 #include "dojosynapse.h"
 #include "dojoneuron.h"
-#include "dojoserver.h"
-//#include "dojostorage.h"
+#include "dojoioserver.h"
+#include "dojowsserver.h"
+#include "dojostorage.h"
 #include "dojonetwork.h"
 
 

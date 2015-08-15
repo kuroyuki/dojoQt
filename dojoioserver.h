@@ -1,22 +1,22 @@
-#ifndef DOJOSERVER_H
-#define DOJOSERVER_H
+#ifndef DOJOIOSERVER_H
+#define DOJOIOSERVER_H
 
 #include "dojo.h"
 
-class dojoServer : public QObject
+class dojoIOServer : public QObject
 {
     Q_OBJECT
 public:
-    explicit dojoServer(QObject *parent = 0);
-    void addSensor(dojoID source, dojoUdpSensor sensor);
-    void addActuator(dojoID source, dojoUdpAct actuator);
+    explicit dojoIOServer(QObject *parent = 0);
+
     void ap(dojoID source, double terminals);
 
 signals:
-    void serverEvent(QJsonObject event);
     void serverAp(dojoID source, dojoID target, double value);
 
 public slots:
+    void eventHandler(QJsonObject event);
+
     void slotUdpReadyRead();
     void slotUdpError(QAbstractSocket::SocketError error);
 
@@ -29,4 +29,4 @@ private:
 
 };
 
-#endif // DOJOSERVER_H
+#endif // DOJOIOSERVER_H

@@ -2,12 +2,25 @@
 
 dojoNetwork::dojoNetwork(QString name, QObject *parent) : QObject(parent)
 {
-    /*storage = new dojoStorage(name);
-    connect(storage, SIGNAL(storageEvent(QJsonObject)), this, SLOT(handleEvent(QJsonObject)));
-    */
-    server = new dojoServer();
-    connect(server, SIGNAL(serverEvent(QJsonObject)), this, SLOT(handleEvent(QJsonObject)));
-    connect(server, SIGNAL(serverAp(dojoID,dojoID,double)), this, SLOT(externalAp(dojoID,dojoID,double)));
+    storage = new dojoStorage(name);
+    io = new dojoIOServer();
+    wsServer = new dojoWsServer(storage);
+
+    //IO send events only to network
+    connect(io, SIGNAL(serverAp(dojoID,dojoID,double)), this, SLOT(externalApHandler(dojoID,dojoID,double)));
+
+    //Storage send events to network and admin
+    connect(storage, SIGNAL(storageEvent(QJsonObject)), this, SLOT(eventHandler(QJsonObject)));
+    connect(storage, SIGNAL(storageEvent(QJsonObject)), wsServer, SLOT(eventHandler(QJsonObject)));
+
+    //admin send events to network and storage
+    connect(wsServer, SIGNAL(wsEvent(QJsonObject)), this, SLOT(eventHandler(QJsonObject)));
+    connect(wsServer, SIGNAL(wsEvent(QJsonObject)), storage, SLOT(eventHandler(QJsonObject)));
+
+    //network send events to storage, IO and admin
+    connect(this, SIGNAL(dojoEvent(QJsonObject)), wsServer, SLOT(eventHandler(QJsonObject)));
+    connect(this, SIGNAL(dojoEvent(QJsonObject)), storage, SLOT(eventHandler(QJsonObject)));
+    connect(this, SIGNAL(dojoEvent(QJsonObject)), io, SLOT(eventHandler(QJsonObject)));
 
     timer = new QTimer();
     timeout = 10;
@@ -18,13 +31,21 @@ dojoNetwork::dojoNetwork(QString name, QObject *parent) : QObject(parent)
     connect(this, SIGNAL(dojoProcess()), this, SLOT(process()));
 
     //handle all self events by itself
-    connect(this, SIGNAL(dojoEvent(QJsonObject)), this, SLOT(handleEvent(QJsonObject)));
+    //connect(this, SIGNAL(dojoEvent(QJsonObject)), this, SLOT(handleEvent(QJsonObject)));
 }
 
 dojoNetwork::~dojoNetwork()
 {
 
 }
+void dojoNetwork::start(){
+    storage->getCurrentTables();
+    //if we have something to process and its not already running
+    if(neurons.size()>0 && !timer->isActive()){
+       timer->start(timeout);
+    }
+}
+
 void dojoNetwork::slotTimeout(){
     emit dojoProcess();
 }
@@ -62,15 +83,15 @@ dojoID dojoNetwork::createNeuron(QVector3D pos, QVector3D axon){
     json.insert("command", "an");
     json.insert("id", id);
 
-    QJsonArray posJson;
-    posJson.append(pos.x());
-    posJson.append(pos.y());
-    posJson.append(pos.z());
+    QJsonObject posJson;
+    posJson.insert("x", pos.x());
+    posJson.insert("y", pos.y());
+    posJson.insert("z", pos.z());
 
-    QJsonArray axonJson;
-    axonJson.append(axon.x());
-    axonJson.append(axon.y());
-    axonJson.append(axon.z());
+    QJsonObject axonJson;
+    axonJson.insert("x", axon.x());
+    axonJson.insert("y", axon.y());
+    axonJson.insert("z", axon.z());
 
     json.insert("pos", posJson);
     json.insert("axon", axonJson);
@@ -100,19 +121,15 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
         if(nextId <= source)
             nextId = source+1;
 
-        //create sensor        
-        dojoUdpSensor sensor;
-        sensor.target = target;
-        sensor.address = QHostAddress::LocalHost;
-        sensor.port = UDP_CLIENT_PORT;
-
-        server->addSensor(source, sensor);
-
         //create synapse
-        dojoSynapse* syn = new dojoSynapse(LENGTH_CONST);
-        neurons[target]->addSource(source, syn);
+        dojoSynapse* syn = new dojoSynapse(LENGTH_CONST, 1);
+        neurons[target]->addSource(source, syn);        
 
-        //storage->addSensor(sensor);
+        QJsonObject json;
+        json.insert("command", "ai");
+        json.insert("source", source);
+        json.insert("target", target);
+        emit dojoEvent(json);
 
         return;
     }
@@ -123,24 +140,23 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
             nextId = target+1;
 
         //create actuator
-        neurons[source]->addAct(server);
-        dojoUdpAct act;
-        act.target = target;
-        act.address = QHostAddress::LocalHost;
-        act.port = UDP_CLIENT_PORT;
-        server->addActuator(source, act);
+        neurons[source]->addAct(io);
+
+        QJsonObject json;
+        json.insert("command", "ao");
+        json.insert("source", source);
+        json.insert("target", target);
+        emit dojoEvent(json);
 
         return;
     }
 
-    //both IDs already exist in this network
+    //both IDs are not exist in this network
     QVector3D diff = neurons[target]->getPosition() - neurons[source]->getAxonPosition();
-    dojoSynapse* synapse = new dojoSynapse(diff.length());
+    dojoSynapse* synapse = new dojoSynapse(diff.length(), 1);
 
     neurons[source]->addTarget(neurons[target]);
     neurons[target]->addSource(source, synapse);
-
-    //storage->addSynapse(synapse);
 
     QJsonObject json;
     json.insert("command", "as");
@@ -161,7 +177,7 @@ void dojoNetwork::unbindNeurons(dojoID source, dojoID target){
     json.insert("target", target);
     emit dojoEvent(json);
 }
-void dojoNetwork::externalAp(dojoID source, dojoID target, double value){
+void dojoNetwork::externalApHandler(dojoID source, dojoID target, double value){
     if(neurons.contains(target)){
         neurons[target]->ap(source, value);
         timer->setInterval(1);
@@ -175,104 +191,55 @@ void dojoNetwork::externalAp(dojoID source, dojoID target, double value){
         emit dojoEvent(json);
     }
 }
-void dojoNetwork::handleEvent(QJsonObject event){
-    //QJsonDocument jdoc(event);
-    //qDebug()<<jdoc.toJson(QJsonDocument::Compact)<<endl;
-    /*
-    QString request = json.take("command").toString();
+void dojoNetwork::eventHandler(QJsonObject event){
 
-    if(request == "an"){
-                QJsonObject json;
-                json.insert("command", "an");
+    QString command = event.take("command").toString();
 
-                QJsonArray posJson;
-                posJson.append(list[0].toDouble());
-                posJson.append(list[1].toDouble());
-                posJson.append(list[2].toDouble());
+    if(command == "an"){
 
-                QJsonArray axonJson;
-                axonJson.append(list[3].toDouble());
-                axonJson.append(list[4].toDouble());
-                axonJson.append(list[5].toDouble());
+        dojoID id = event.take("id").toInt();
 
-                json.insert("pos", posJson);
-                json.insert("axon", axonJson);
+        if(neurons.contains(id)){
+            qDebug()<<"dojo - neuron "<<id<<" already exist";
+            return;
+        }
 
-                dojo->handleCommand(json);
+        if(id >= nextId)
+            nextId = id+1;
 
+        QJsonObject posJson = event.take("pos").toObject();
+        QVector3D pos(posJson.take("x").toDouble(),posJson.take("y").toDouble(),posJson.take("z").toDouble());
 
-        QJsonArray posArray = json.take("pos").toArray();
-        QVector3D position(
-                    posArray.at(0).toDouble(),
-                    posArray.at(1).toDouble(),
-                    posArray.at(2).toDouble());
+        QJsonObject axonJson = event.take("axon").toObject();
+        QVector3D axon(axonJson.take("x").toDouble(),axonJson.take("y").toDouble(),axonJson.take("z").toDouble());
 
-        posArray = json.take("axon").toArray();
-        QVector3D axon(
-                    posArray.at(0).toDouble(),
-                    posArray.at(1).toDouble(),
-                    posArray.at(2).toDouble());
+        neurons.insert(id, new dojoNeuron(id, pos, axon));
 
+        if(!timer->isActive())
+            timer->start(timeout);
+    }    
+    else if(command == "as"){
+        dojoID source = event.take("source").toInt();
+        dojoID target = event.take("target").toInt();
+        //source is outside the current network
+        if(!neurons.contains(source)){
+            qDebug()<<"dojo - source "<<source<<" is not exist";
+            return;
+        }
+        //target is outside the current network
+        if(!neurons.contains(target)){
+            qDebug()<<"dojo - target "<<target<<" is not exist";
+            return;
+        }
+        //both are exist
+        dojoSynapse* synapse = new dojoSynapse(event.take("length").toDouble(), event.take("permability").toDouble());
 
-        createNeuron(position, axon);
+        neurons[source]->addTarget(neurons[target]);
+        neurons[target]->addSource(source, synapse);
     }
-    else if(request == "un"){
-                QJsonObject json;
-                json.insert("command", "un");
-                json.insert("id", list[0].toDouble());
-
-                QJsonArray posJson;
-                posJson.append(list[1].toDouble());
-                posJson.append(list[2].toDouble());
-                posJson.append(list[3].toDouble());
-
-                QJsonArray axonJson;
-                axonJson.append(list[4].toDouble());
-                axonJson.append(list[5].toDouble());
-                axonJson.append(list[6].toDouble());
-
-                json.insert("pos", posJson);
-                json.insert("axon", axonJson);
-
-                dojo->handleCommand(json);
-
-        QJsonArray posArray = json.take("pos").toArray();
-        QVector3D position(
-                    posArray.at(0).toDouble(),
-                    posArray.at(1).toDouble(),
-                    posArray.at(2).toDouble());
-
-        posArray = json.take("axon").toArray();
-        QVector3D axon(
-                    posArray.at(0).toDouble(),
-                    posArray.at(1).toDouble(),
-                    posArray.at(2).toDouble());
-
-        dojoID id = json.take("id").toDouble();
-        setNeuronPosition(id, position, axon);
+    else{
+        QJsonDocument  jdoc(event);
+        qDebug()<<"dojo - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
     }
-    else if(request == "dn"){
-
-            QJsonObject json;
-            json.insert("command", "dn");
-            json.insert("id", data.toDouble());
-
-        dojoID id = json.take("id").toDouble();
-        deleteNeuron(id);
-    }
-    else if(request == "as"){
-
-                QJsonObject json;
-                json.insert("command", "as");
-                json.insert("source", list[0].toInt());
-                json.insert("target", list[1].toInt());
-                dojo->handleCommand(json);
-
-        bindNeurons(json.take("source").toDouble(), json.take("target").toDouble());
-    }
-    else if(request == "ds"){
-
-    }
-    */
 }
 

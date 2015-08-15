@@ -6,7 +6,7 @@
 class dojoSynapse
 {
 public :
-    dojoSynapse(double len);
+    dojoSynapse(double len, double perm);
     void ap(double terminals);
     double getVoltage(qint64 now);
     void changePermability(qint64 now);

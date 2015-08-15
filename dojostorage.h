@@ -2,7 +2,6 @@
 #define DOJOSTORAGE_H
 
 #include <QObject>
-#include <QtSql>
 
 #include "dojo.h"
 
@@ -14,24 +13,16 @@ class dojoStorage : public QObject
 public:
     explicit dojoStorage(QString name, QObject *parent = 0);
     ~dojoStorage();
-
-    void addNeuron(dojoNeuron* neuron);
-    dojoNeuron getNeuron(dojoID id);
-    void updateNeuron(dojoNeuron* neuron);
-    void removeNeuron(dojoID id);
-
-    void addSynapse(dojoSynapse* synapse);
-    //dojoSynapse getSynapse(dojoID source, dojoID target);
-    void updateSynapse(dojoSynapse* synapse);
-    void removeSynapse(dojoID source, dojoID target);
+    void getCurrentTables();
 
 signals:
     void storageEvent(QJsonObject event);
 
 public slots:
+    void eventHandler(QJsonObject event);
+
 private :
     QSqlDatabase db;
-
 };
 
 #endif // DOJOSTORAGE_H
