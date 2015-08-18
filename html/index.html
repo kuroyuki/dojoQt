@@ -17,19 +17,26 @@
 
 	<body>
 		<div>
+			<div>Node</div>
 			X:<input>
 			Y:<input>
 			Z:<input>
-			<button>Create Neuron</button>
+			<div>Axon</div>
+			X:<input>
+			Y:<input>
+			Z:<input>
+			<div><button>Create Neuron</button></div>
+			
 		</div>
 		<div id="mainScene">
 		</div>	
 	</body>	
 	<script src="dojoWsHandler.js"></script>   
 	<script src="dojoDrawing.js"></script>
+	<script src="OrbitControl.js"></script>
 	<script type="text/javascript">
 
-		setupDrawScene();		
+   		setupDrawScene();		
 		var wsUri = "ws://localhost:1234/";			
 		connectWebSocket(wsUri);
 	</script>

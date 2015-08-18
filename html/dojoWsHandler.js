@@ -28,16 +28,25 @@ function onMessage(evt)
 		var pos = json.pos;
 		var axon = json.axon;
 		var id = json.id;
-		var size = 0.5;
+		var size = 0.25;
 
-		sessionStorage.id = [pos,axon,size];
-		addNode([pos.x, pos.y, pos.z], [axon.x,axon.y,axon.z], size);
-	    
+		var nodeData = {
+			"axon" : axon,
+			"pos" : pos,
+			"size" : size
+		};
+
+		sessionStorage.setItem(id, JSON.stringify(nodeData));
+
+		addNode(nodeData.pos, nodeData.axon, nodeData.size);
 	}
 	else if(json.command == "as"){
 		//"{"command":"as","length":1,"permability":1,"source":0,"target":2}"
-		var sourceData = sessionStorage[json.source];
-		var targetData = sessionStorage[json.target];
+		
+		var source = JSON.parse(sessionStorage.getItem(json.source));
+		var target = JSON.parse(sessionStorage.getItem(json.target));
+
+		bindNodes(source.axon, target.pos);
 	}
 	else if(json.command == "ai"){
 	    

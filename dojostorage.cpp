@@ -27,6 +27,8 @@ void dojoStorage::eventHandler(QJsonObject event){
         qDebug()<<"dojoStorage - add neuron";
 
         QSqlQuery query;
+        //INSERT INTO neurons (id, x, y, z, axon_x, axon_y, axon_z)VALUES (:id, :x, :y, :z, :axon_x, :axon_y, :axon_z) on duplicate key
+        //query.exec("UPDATE employee SET salary = 70000 WHERE id = 1003");
         query.prepare("INSERT INTO neurons (id, x, y, z, axon_x, axon_y, axon_z)"
                       "VALUES (:id, :x, :y, :z, :axon_x, :axon_y, :axon_z)");
 
