@@ -55,10 +55,7 @@ void dojoWsServer::processTextMessage(QString message){
     }
     else if(command == "as"){
 
-    }
-    else if(command == "gt"){
-
-    }
+    }   
 }
 void dojoWsServer::socketDisconnected(){
     qDebug()<<"WS client disconnected :";

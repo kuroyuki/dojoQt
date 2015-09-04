@@ -14,6 +14,10 @@ public:
     explicit dojoStorage(QString name, QObject *parent = 0);
     ~dojoStorage();
     void getCurrentTables();
+    QList<dojoID> getNeuronsInArea(QVector3D center, float radius);
+    QList<dojoID> getNeuronsInHemisphere(QVector3D plane, QVector3D normal,  float radius);
+
+    bool isSynapseExist(dojoID source, dojoID target);
 
 signals:
     void storageEvent(QJsonObject event);

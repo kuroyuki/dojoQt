@@ -16,16 +16,15 @@ public:
     ~dojoNetwork();
 
     void start();
-    void stop(){
-        timer->stop();
-    }
+    void stop();
 
-    dojoID createNeuron(QVector3D pos, QVector3D axon);
-    //void setNeuronPosition(dojoID id, QVector3D pos, QVector3D axon);
+    dojoID createNeuron(QVector3D pos, QVector3D axon);    
     void deleteNeuron(dojoID id);
 
     void bindNeurons(dojoID source, dojoID target);
-    void unbindNeurons(dojoID source, dojoID target);
+    void unbindNeurons(dojoID source, dojoID target);  
+
+    QList<dojoID> getNeigbours(dojoID nodeID, float atDistance);
 
 public slots:
     void process();
@@ -37,7 +36,11 @@ signals:
     void dojoEvent(QJsonObject json);
     void dojoProcess();
 
-private:
+private:    
+    QJsonObject createSynapse(dojoID source, dojoID target);
+    QJsonObject createSensor(dojoID source, dojoID target);
+    QJsonObject createActuator(dojoID source, dojoID target);
+
     void restoreNode();
     void restoreSynapse();
     void restoreSensor();

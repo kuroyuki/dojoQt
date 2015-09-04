@@ -119,3 +119,56 @@ void dojoStorage::getCurrentTables(){
         }
     }
 }
+QList<dojoID> dojoStorage::getNeuronsInArea(QVector3D center, float radius){
+    QList<dojoID> list;
+    QSqlQuery query;
+    //get all neurons
+    query.exec("SELECT id, x, y, z FROM neurons");
+    bool isContinue = true;
+    if(query.first()) {
+        while(isContinue){
+
+            QVector3D neuronPos;
+            neuronPos.setX(query.value(1).toDouble());
+            neuronPos.setY(query.value(2).toDouble());
+            neuronPos.setZ(query.value(3).toDouble());
+
+            float distance = neuronPos.distanceToPoint(center);
+            if(distance <= radius)
+                list << query.value(0).toInt();
+
+            if(!query.next())
+                isContinue = false;
+            else isContinue = true;
+        }
+    }
+    return list;
+}
+ QList<dojoID> dojoStorage::getNeuronsInHemisphere(QVector3D plane, QVector3D normal,  float radius){
+     QList<dojoID> list;
+     QSqlQuery query;
+     //get all neurons
+     query.exec("SELECT id, x, y, z FROM neurons");
+     bool isContinue = true;
+     if(query.first()) {
+         while(isContinue){
+
+             QVector3D neuronPos;
+             neuronPos.setX(query.value(1).toDouble());
+             neuronPos.setY(query.value(2).toDouble());
+             neuronPos.setZ(query.value(3).toDouble());
+
+             float distance = neuronPos.distanceToPlane(plane, normal.normalized());
+
+             if(distance >= 0 && distance <= radius)
+                 list << query.value(0).toInt();
+
+             if(!query.next())
+                 isContinue = false;
+             else isContinue = true;
+         }
+     }
+     qDebug()<<"looking distance "<<radius;
+     return list;
+ }
+

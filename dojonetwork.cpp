@@ -45,6 +45,9 @@ void dojoNetwork::start(){
        timer->start(timeout);
     }
 }
+void dojoNetwork::stop(){
+    timer->stop();
+}
 
 void dojoNetwork::slotTimeout(){
     emit dojoProcess();
@@ -57,6 +60,24 @@ void dojoNetwork::process(){
     foreach (dojoNeuron* neuron, neurons)
         if(neuron->getNextCheck() <= now){
            neuron->process();
+
+           //neuron wants to grow
+           if(neuron->isGrowing()){
+               //get neigbours
+               //QList<dojoID> neigbours = storage->getNeuronsInArea(neuron->getAxonPosition(), neuron->getGrowingRadius());
+               QList<dojoID> neigbours = storage->getNeuronsInHemisphere(neuron->getAxonPosition(), neuron->getAxonPosition()-neuron->getPosition(), neuron->getGrowingRadius());
+
+               dojoID sourceID = neuron->getID();
+               //remove itself from the list
+               if(neigbours.contains(sourceID))
+                   neigbours.removeAll(sourceID);
+
+               //make syanpses with discovered neurons
+               for(int i=0;i<neigbours.length();i++){
+                   bindNeurons(sourceID, neigbours[i]);
+               }
+               neuron->stopGrowing();
+           }
         }
 
     //find the least time to sleep
@@ -117,54 +138,23 @@ void dojoNetwork::bindNeurons(dojoID source, dojoID target){
         if(!neurons.contains(target)){
             return;
         }
-        //to exclude this id from future use
-        if(nextId <= source)
-            nextId = source+1;
-
-        //create synapse
-        dojoSynapse* syn = new dojoSynapse(LENGTH_CONST, 1);
-        neurons[target]->addSource(source, syn);        
-
-        QJsonObject json;
-        json.insert("command", "ai");
-        json.insert("source", source);
-        json.insert("target", target);
-        emit dojoEvent(json);
-
+        emit dojoEvent(createSensor(source,target));
         return;
     }
     //target is outside the current network
     if(!neurons.contains(target)){
-        //to exclude this id from future use
-        if(nextId <= target)
-            nextId = target+1;
-
-        //create actuator
-        neurons[source]->addAct(io);
-
-        QJsonObject json;
-        json.insert("command", "ao");
-        json.insert("source", source);
-        json.insert("target", target);
-        emit dojoEvent(json);
-
+        emit dojoEvent(createActuator(source, target));
         return;
     }
 
     //both IDs are not exist in this network
-    QVector3D diff = neurons[target]->getPosition() - neurons[source]->getAxonPosition();
-    dojoSynapse* synapse = new dojoSynapse(diff.length(), 1);
+    //if already exist - nothing to do
+    if(neurons[source]->isTargetExist(neurons[target]) && neurons[target]->isSourceExist(source)){
+        qDebug()<<"dojo - synapse "<<source<<","<<target<<" already exist";
+        return;
+    }
 
-    neurons[source]->addTarget(neurons[target]);
-    neurons[target]->addSource(source, synapse);
-
-    QJsonObject json;
-    json.insert("command", "as");
-    json.insert("source", source);
-    json.insert("target", target);
-    json.insert("length", (double)synapse->getLength());
-    json.insert("permability", (double)synapse->getPermability());
-    emit dojoEvent(json);
+    emit dojoEvent(createSynapse(source, target));
 }
 
 void dojoNetwork::unbindNeurons(dojoID source, dojoID target){
@@ -231,7 +221,12 @@ void dojoNetwork::eventHandler(QJsonObject event){
             qDebug()<<"dojo - target "<<target<<" is not exist";
             return;
         }
-        //both are exist
+        //both neurons are exist
+        //if already exist - nothing to do
+        if(neurons[source]->isTargetExist(neurons[target]) && neurons[target]->isSourceExist(source)){
+            qDebug()<<"dojo - synapse "<<source<<","<<target<<" already exist";
+            return;
+        }
         dojoSynapse* synapse = new dojoSynapse(event.take("length").toDouble(), event.take("permability").toDouble());
 
         neurons[source]->addTarget(neurons[target]);
@@ -242,4 +237,57 @@ void dojoNetwork::eventHandler(QJsonObject event){
         qDebug()<<"dojo - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
     }
 }
+ QList<dojoID> dojoNetwork::getNeigbours(dojoID nodeID, float atDistance){
+     QList<dojoID> neigbours = storage->getNeuronsInArea(neurons[nodeID]->getAxonPosition(), atDistance);
 
+     //remove itself from the list
+     if(neigbours.contains(nodeID))
+         neigbours.removeAll(nodeID);
+
+     return neigbours;
+ }
+
+ QJsonObject dojoNetwork::createSynapse(dojoID source, dojoID target){
+     QVector3D diff = neurons[target]->getPosition() - neurons[source]->getAxonPosition();
+     dojoSynapse* synapse = new dojoSynapse(diff.length(), 1);
+
+     neurons[source]->addTarget(neurons[target]);
+     neurons[target]->addSource(source, synapse);
+
+     QJsonObject json;
+     json.insert("command", "as");
+     json.insert("source", source);
+     json.insert("target", target);
+     json.insert("length", (double)synapse->getLength());
+     json.insert("permability", (double)synapse->getPermability());
+     return json;
+ }
+QJsonObject dojoNetwork::createSensor(dojoID source, dojoID target){
+    //to exclude this id from future use
+    if(nextId <= source)
+        nextId = source+1;
+
+    //create synapse
+    dojoSynapse* syn = new dojoSynapse(LENGTH_CONST, 1);
+    neurons[target]->addSource(source, syn);
+
+    QJsonObject json;
+    json.insert("command", "ai");
+    json.insert("source", source);
+    json.insert("target", target);
+    return json;
+}
+QJsonObject dojoNetwork::createActuator(dojoID source, dojoID target){
+    //to exclude this id from future use
+    if(nextId <= target)
+        nextId = target+1;
+
+    //create actuator
+    neurons[source]->addAct(io);
+
+    QJsonObject json;
+    json.insert("command", "ao");
+    json.insert("source", source);
+    json.insert("target", target);
+    return json;
+}

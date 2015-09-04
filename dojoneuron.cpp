@@ -9,10 +9,16 @@ dojoNeuron::dojoNeuron(dojoID new_id, QVector3D new_pos, QVector3D new_axon)
     actuator = 0;
 
     lastAction = QDateTime::currentMSecsSinceEpoch();
+    lastGrow = lastAction;
     voltage = DEFAULT_VOLTAGE;
     axonTerminals = 1;
 
     size = 1.0;
+
+    isGrow = false;
+    growingRadius = 1;
+
+    nextCheck = lastAction + qrand()%1000;
 }
 void dojoNeuron::ap(dojoID source, double terminals){
     if(sources.contains(source)){
@@ -56,7 +62,7 @@ void dojoNeuron::process(){
         voltage = DEFAULT_VOLTAGE;
         lastAction = now;
 
-        //next check right now (in 2 ms)
+        //next check right now (in 1 ms)
         nextCheck = now+1;
 
         /*
@@ -81,6 +87,14 @@ void dojoNeuron::process(){
         }
         nextCheck = now+TIME_SCALE*(now-lastAction);
     }
+
+    //Growing up synapses each 5 sec
+    if((now-lastGrow)>5000*growingRadius){
+        lastGrow = now;
+        //growing
+        growingRadius *= GROWING_RATE;
+        isGrow = true;
+    }
 }
 
 void dojoNeuron::addSource(dojoID source, dojoSynapse* synapse){
@@ -102,4 +116,17 @@ void dojoNeuron::addTarget(dojoNeuron* target){
 void dojoNeuron::removeTarget(dojoNeuron* target){
     if(targets.contains(target))
         targets.removeOne(target);
+}
+bool dojoNeuron::isGrowing(){
+    return isGrow;
+}
+float dojoNeuron::getGrowingRadius(){
+    return growingRadius;
+}
+bool dojoNeuron::isSourceExist(dojoID source){
+    return sources.contains(source);
+}
+
+bool dojoNeuron::isTargetExist(dojoNeuron* target){
+    return targets.contains(target);
 }

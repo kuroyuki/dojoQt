@@ -90,7 +90,7 @@ void dojoIOServer::eventHandler(QJsonObject event){
     }
     else{
         QJsonDocument  jdoc(event);
-        qDebug()<<"dojoIO  - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
+        qDebug()<<"dojoIO  - unknown event";
     }
 }
 

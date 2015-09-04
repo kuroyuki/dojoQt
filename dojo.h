@@ -27,6 +27,8 @@ typedef int dojoID;
 #define TIME_SCALE 0.3 //next check in 0.3 longer than current one
 //defines how deep the voltage will be dropped after AP ->> how fast the neuron will be ready for next AP
 #define DEFAULT_VOLTAGE 0
+//defines speed of expanding area where axon can find another neurons to make synapses
+#define GROWING_RATE 1.3
 
 #define UDP_SERVER_PORT 25098
 #define UDP_CLIENT_PORT 26128

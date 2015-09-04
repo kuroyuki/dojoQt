@@ -48,6 +48,17 @@ function setupDrawScene(){
 	// add to the scene
 	scene.add(pointLight);
 
+	// create a point light
+	var upperLight = new THREE.PointLight( 0xFFFFFF );
+
+	// set its position
+	upperLight.position.x = -50;
+	upperLight.position.y = 200;
+	upperLight.position.z = -50;
+
+	// add to the scene
+	scene.add(upperLight);
+
 	//Grid
 	var geometry = new THREE.Geometry();
 	geometry.vertices.push( new THREE.Vector3( - 50, 0, 0 )  );

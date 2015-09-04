@@ -25,6 +25,12 @@ public:
     void addAct(dojoIOServer* server);
 
     qint64 getNextCheck(){return nextCheck;}
+    bool isGrowing();
+    void stopGrowing(){ isGrow = false;}
+    float getGrowingRadius();
+
+    bool isSourceExist(dojoID source);
+    bool isTargetExist(dojoNeuron* target);
     dojoID getID(){return id;}
 
 private:
@@ -35,6 +41,7 @@ private:
     dojoID id;
 
     qint64 lastAction;
+    qint64 lastGrow;
     double voltage;
     double axonTerminals;
 
@@ -44,6 +51,9 @@ private:
 
     qint64 nextCheck;
     dojoIOServer* actuator;
+
+    float growingRadius;
+    bool isGrow;
 };
 
 #endif // DOJONEURON_H
