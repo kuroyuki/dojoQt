@@ -1,174 +1,264 @@
 #include "dojostorage.h"
 
-dojoStorage::dojoStorage(QString name, QObject *parent) : QObject(parent)
+dojoStorage::dojoStorage(QObject *parent) : QObject(parent)
 {
-    db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(name+".dojo");
-    if (db.open()) {
-        QSqlQuery query;
-        query.exec("create table neurons (id int primary key,"
-                   "x real, y real, z real,"
-                   "axon_x real, axon_y real, axon_z real)");
+    redis = new QTcpSocket();
 
-        query.exec("create table synapses (source int, target int, length real, permability real)");
-    }
-    else {
-        qDebug()<<"Cannot open database";
-    }
+    redis->connectToHost("localhost", 6379);
+
+    redis->waitForConnected();
+
+    qDebug()<<"connected";
+}
+QString dojoStorage::writeCommand(QString cmd){
+     redis->write(cmd.toLocal8Bit()+"\n");
+     redis->waitForReadyRead();
+     QByteArray data = redis->readAll();
+
+     return QString(data);
+}
+void dojoStorage::setNextID(dojoID next){
+    QString str;
+    str = "hset network nextID "+QString::number(next);
+    writeCommand(str);
+
+    emit storageEvent(str);
 }
 
-dojoStorage::~dojoStorage()
-{
-    db.close();
+dojoID dojoStorage::getNextID(){
+    QString str;
+    str = "hget network nextID";
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return list[1].toInt();
 }
-void dojoStorage::eventHandler(QJsonObject event){
-    QString command = event.take("command").toString();
-    if(command == "an"){
-        qDebug()<<"dojoStorage - add neuron";
+void dojoStorage::addNeuron(dojoID id, QVector3D position, QVector3D axon, float size, float terminals){
+    QString str;
+    str = "hmset neurons:"+QString::number(id)+
+            " x "+QString::number(position.x())+
+            " y "+QString::number(position.y())+
+            " z "+QString::number(position.z())+
+            " axon_x "+QString::number(axon.x())+
+            " axon_y "+QString::number(axon.y())+
+            " axon_z "+QString::number(axon.z())+
+            " size "+ QString::number(size)+
+            " terminals "+QString::number(terminals);
 
-        QSqlQuery query;
-        //INSERT INTO neurons (id, x, y, z, axon_x, axon_y, axon_z)VALUES (:id, :x, :y, :z, :axon_x, :axon_y, :axon_z) on duplicate key
-        //query.exec("UPDATE employee SET salary = 70000 WHERE id = 1003");
-        query.prepare("INSERT INTO neurons (id, x, y, z, axon_x, axon_y, axon_z)"
-                      "VALUES (:id, :x, :y, :z, :axon_x, :axon_y, :axon_z)");
+    writeCommand(str);
 
-        query.bindValue(":id", event.take("id").toInt());
-
-        QJsonObject pos = event.take("pos").toObject();
-
-        query.bindValue(":x", pos.take("x").toDouble());
-        query.bindValue(":y", pos.take("y").toDouble());
-        query.bindValue(":z", pos.take("z").toDouble());
-
-        QJsonObject axon = event.take("axon").toObject();
-        query.bindValue(":axon_x", axon.take("x").toDouble());
-        query.bindValue(":axon_y", axon.take("y").toDouble());
-        query.bindValue(":axon_z", axon.take("z").toDouble());
-
-        query.exec();
-    }
-    else if(command == "as"){
-        qDebug()<<"dojoStorage - add synapse";        
-
-        QSqlQuery query;
-        query.prepare("INSERT INTO synapses (source, target, length, permability)"
-                      "VALUES (:source, :target, :length, :permability)");
-
-        query.bindValue(":source", event.take("source").toInt());
-        query.bindValue(":target", event.take("target").toInt());
-        query.bindValue(":length", event.take("length").toDouble());
-        query.bindValue(":permability",event.take("permability").toDouble());
-
-        query.exec();
-    }
-    else{
-        QJsonDocument  jdoc(event);
-        qDebug()<<"dojoStorage - unknown event"<<jdoc.toJson(QJsonDocument::Compact);
-    }
+    emit storageEvent(str);
 }
-void dojoStorage::getCurrentTables(){
-    QSqlQuery query;
+bool dojoStorage::isNeuronExist(dojoID id){
+    QString str;
+    str = "exists neurons:"+QString::number(id);
+    QString reply = writeCommand(str);
+    reply.chop(2);
+    reply.remove(0,1);
+    if(reply == "1")
+        return true;
+    else return false;
+}
 
-    //get all neurons
-    query.exec("SELECT id, x, y, z, axon_x, axon_y, axon_z FROM neurons");
-    bool isContinue = true;
-    if(query.first()) {
-        while(isContinue){
-            QJsonObject json;
-            json.insert("command", "an");
-            json.insert("id", query.value(0).toInt());
+void dojoStorage::setNeuronPosition(dojoID id, QVector3D new_position){
+    QString str;
+    str = "hmset neurons:"+QString::number(id)+
+            " x "+QString::number(new_position.x())+
+            " y "+QString::number(new_position.y())+
+            " z "+QString::number(new_position.z());
+    writeCommand(str);
 
-            QJsonObject posJson;
-            posJson.insert("x", query.value(1).toDouble());
-            posJson.insert("y", query.value(2).toDouble());
-            posJson.insert("z", query.value(3).toDouble());
+    emit storageEvent(str);
+}
 
-            QJsonObject axonJson;
-            axonJson.insert("x", query.value(4).toDouble());
-            axonJson.insert("y", query.value(5).toDouble());
-            axonJson.insert("z", query.value(6).toDouble());
+void dojoStorage::setNeuronAxon(dojoID id, QVector3D new_axon){
+    QString str;
+    str = "hmset neurons:"+QString::number(id)+
+            " axon_x "+QString::number(new_axon.x())+
+            " axon_y "+QString::number(new_axon.y())+
+            " axon_z "+QString::number(new_axon.z());
+    writeCommand(str);
 
-            json.insert("pos", posJson);
-            json.insert("axon", axonJson);
+    emit storageEvent(str);
+}
 
-            emit storageEvent(json);
+void dojoStorage::setNeuronSize(dojoID id, float new_size){
+    QString str;
+    str = "hset neurons:"+QString::number(id)+" size "+QString::number(new_size);
+    writeCommand(str);
 
-            if(!query.next())
-                isContinue = false;
-            else isContinue = true;
+    emit storageEvent(str);
+}
+void dojoStorage::setNeuronTerminals(dojoID id, float newTerminals){
+    QString str;
+    str = "hset neurons:"+QString::number(id)+" terminals "+QString::number(newTerminals);
+    writeCommand(str);
+
+    emit storageEvent(str);
+}
+QVector3D dojoStorage::getNeuronPosition(dojoID id){
+    QString str;
+    str = "hmget neurons:"+QString::number(id)+" x y z";
+
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return QVector3D(list[2].toFloat(),list[4].toFloat(),list[6].toFloat() ) ;
+}
+
+QVector3D dojoStorage::getNeuronAxon(dojoID id){
+    QString str;
+    str = "hmget neurons:"+QString::number(id)+" axon_x axon_y axon_z";
+
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return QVector3D(list[2].toFloat(),list[4].toFloat(),list[6].toFloat() ) ;
+}
+
+float dojoStorage::getNeuronSize(dojoID id){
+    QString str;
+    str = "hget neurons:"+QString::number(id)+" size ";
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return list[1].toFloat();
+}
+float dojoStorage::getNeuronTerminals(dojoID id){
+    QString str;
+    str = "hget neurons:"+QString::number(id)+" terminals ";
+
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return list[1].toFloat();
+}
+void dojoStorage::deleteNeuron(dojoID id){
+    QString str;
+    str = "del neurons:"+QString::number(id);
+    writeCommand(str.toLocal8Bit());
+
+    emit storageEvent(str);
+}
+QList<dojoID> dojoStorage::getNeuronsInArea(QVector3D point, float atDistance){
+    QList<dojoID> neurons;
+
+    QString str;
+    int start = 0;
+    do{
+        str = "scan "+QString::number(start)+" match \"neurons:*\" count 10";
+
+        QStringList list = writeCommand(str).split("\r\n");
+        for(int i=5;i<list.length();i=i+2){
+            dojoID neuronID = list[i].replace("neurons:", "").toInt();
+
+            QVector3D pos = getNeuronPosition(neuronID);
+            float size = getNeuronSize(neuronID);
+
+            QVector3D diff = pos-point;
+            float length = diff.length();
+            if(length-size <= atDistance)
+                neurons<<neuronID;
         }
+
+        start = list[2].toInt();
     }
-    isContinue = true;
-
-    //get all syanpses
-    query.exec("SELECT source, target, length, permability FROM synapses");
-    if(query.first()) {
-        while(isContinue){
-            QJsonObject json;
-            json.insert("command", "as");
-            json.insert("source", query.value(0).toInt());
-            json.insert("target", query.value(1).toInt());
-            json.insert("length", query.value(2).toDouble());
-            json.insert("permability", query.value(3).toDouble());
-
-            emit storageEvent(json);
-
-            if(!query.next())
-                isContinue = false;
-            else isContinue = true;
-        }
-    }
+    while(start != 0);
+    return neurons;
 }
-QList<dojoID> dojoStorage::getNeuronsInArea(QVector3D center, float radius){
-    QList<dojoID> list;
-    QSqlQuery query;
-    //get all neurons
-    query.exec("SELECT id, x, y, z FROM neurons");
-    bool isContinue = true;
-    if(query.first()) {
-        while(isContinue){
+QList<dojoID> dojoStorage::getAllNeurons(){
+    QList<dojoID> neurons;
 
-            QVector3D neuronPos;
-            neuronPos.setX(query.value(1).toDouble());
-            neuronPos.setY(query.value(2).toDouble());
-            neuronPos.setZ(query.value(3).toDouble());
+    QString str;
+    int start = 0;
+    do{
+        str = "scan "+QString::number(start)+" match \"neurons:*\" count 10";
 
-            float distance = neuronPos.distanceToPoint(center);
-            if(distance <= radius)
-                list << query.value(0).toInt();
-
-            if(!query.next())
-                isContinue = false;
-            else isContinue = true;
+        QStringList list = writeCommand(str).split("\r\n");
+        for(int i=5;i<list.length();i=i+2){
+            dojoID neuronID = list[i].replace("neurons:", "").toInt();
+            neurons<<neuronID;
         }
+
+        start = list[2].toInt();
     }
-    return list;
+    while(start != 0);
+    return neurons;
 }
- QList<dojoID> dojoStorage::getNeuronsInHemisphere(QVector3D plane, QVector3D normal,  float radius){
-     QList<dojoID> list;
-     QSqlQuery query;
-     //get all neurons
-     query.exec("SELECT id, x, y, z FROM neurons");
-     bool isContinue = true;
-     if(query.first()) {
-         while(isContinue){
 
-             QVector3D neuronPos;
-             neuronPos.setX(query.value(1).toDouble());
-             neuronPos.setY(query.value(2).toDouble());
-             neuronPos.setZ(query.value(3).toDouble());
+void dojoStorage::addSynapse(QString synapse, float perm, float length){
+    QString str;
+    str = "hmset synapses:"+synapse
+            +" perm "+QString::number(perm)
+            +" length "+QString::number(length);
 
-             float distance = neuronPos.distanceToPlane(plane, normal.normalized());
+    writeCommand(str);
 
-             if(distance >= 0 && distance <= radius)
-                 list << query.value(0).toInt();
+    emit storageEvent(str);
+}
+void dojoStorage::deleteSynapse(QString synapse){
+    QString str;
+    str = "del synapses:"+synapse;
+    writeCommand(str);
 
-             if(!query.next())
-                 isContinue = false;
-             else isContinue = true;
-         }
-     }
-     qDebug()<<"looking distance "<<radius;
-     return list;
- }
+    emit storageEvent(str);
+}
+bool dojoStorage::isSynapseExist(QString synapse){
+    QString str;
+    str = "exists synapses:"+synapse;
+    QString reply = writeCommand(str);
+    reply.chop(2);
+    reply.remove(0,1);
+    if(reply == "1")
+        return true;
+    else return false;
+}
+void dojoStorage::setSynapseLength(QString synapse,float length){
+    QString str;
+    str = "hset synapses:"+synapse
+            +" length "+QString::number(length);
+    writeCommand(str);
 
+    emit storageEvent(str);
+}
+
+float dojoStorage::getSynapseLength(QString synapse){
+    QString str;
+    str = "hget synapses:"+synapse
+            +" length ";
+
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return list[1].toFloat();
+}
+
+void dojoStorage::setSynapsePermability(QString synapse, float perm){
+    QString str;
+    str = "hset synapses:"+synapse
+            +" perm "+QString::number(perm);
+    writeCommand(str);
+
+    emit storageEvent(str);
+}
+float dojoStorage::getSynapsePermability(QString synapse){
+    QString str;
+    str = "hget synapses:"+synapse
+            +" perm ";
+    QStringList list = writeCommand(str).split("\r\n");
+
+    return list[1].toFloat();
+}
+QList<QString> dojoStorage::getAllSynapses(){
+    QList<QString> synapses;
+
+    QString str;
+    int start = 0;
+    do{
+        str = "scan "+QString::number(start)+" match \"synapses:*\" count 10";
+
+        QStringList list = writeCommand(str).split("\r\n");
+        for(int i=5;i<list.length();i=i+2){
+            QString synapse = list[i].replace("synapses:", "");
+            synapses<<synapse;
+        }
+
+        start = list[2].toInt();
+    }
+    while(start != 0);
+    return synapses;
+}

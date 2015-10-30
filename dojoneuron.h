@@ -1,59 +1,50 @@
 #ifndef DOJONEURON_H
 #define DOJONEURON_H
 
-#include "dojo.h"
+#include <QObject>
+#include "dojostorage.h"
+#include "dojosynapse.h"
+
+//defines how fast voltage will be removed from neuron
+#define PUMPING_CONST 1000.0 // in ms - about 50 ms to remove 70% and 70 ms to remove 90% of injected voltage
+//defines varaible time between checks
+#define TIME_SCALE 0.3 //next check in 0.3 longer than current one
+//defines how deep the voltage will be dropped after AP ->> how fast the neuron will be ready for next AP
+#define DEFAULT_VOLTAGE 0
+//defines speed of expanding area where axon can find another neurons to make synapses
+#define GROWING_RATE 1.3
 
 class dojoSynapse;
-class dojoIOServer;
 
-class dojoNeuron
+class dojoNeuron : public QObject
 {
+    Q_OBJECT
 public:
-    dojoNeuron(dojoID new_id, QVector3D new_pos, QVector3D new_axon);
-    void ap(dojoID source, double terminals);
+    explicit dojoNeuron(dojoStorage* str, dojoID node_id, QObject *parent = 0);
+
+    virtual void ap(dojoID source, float terminals);    
     void process();
-
-    QVector3D getAxonPosition(){return axon;}
-    QVector3D getPosition(){return position;}
-
-    void addSource(dojoID source, dojoSynapse* synapse);
-    void removeSource(dojoID source);
-
-    void addTarget(dojoNeuron* target);
-    void removeTarget(dojoNeuron* target);
-
-    void addAct(dojoIOServer* server);
-
     qint64 getNextCheck(){return nextCheck;}
-    bool isGrowing();
-    void stopGrowing(){ isGrow = false;}
-    float getGrowingRadius();
 
-    bool isSourceExist(dojoID source);
-    bool isTargetExist(dojoNeuron* target);
-    dojoID getID(){return id;}
+    void addSource(dojoID source);
+    void addTarget(dojoNeuron* target);
 
-private:
+signals:
 
-    QHash<dojoID, dojoSynapse*> sources;
-    QList<dojoNeuron*> targets;
+public slots:
+    virtual void slotUdpReadyRead(){};
 
-    dojoID id;
+private :
+     dojoStorage* storage;
+     dojoID id;
 
-    qint64 lastAction;
-    qint64 lastGrow;
-    double voltage;
-    double axonTerminals;
+     QList<dojoNeuron*> targets;
+     QHash<dojoID, dojoSynapse*>sources;
 
-    QVector3D axon;
-    QVector3D position;
-    double size;
+     float voltage;
 
-    qint64 nextCheck;
-    dojoIOServer* actuator;
-
-    float growingRadius;
-    bool isGrow;
+     qint64 nextCheck;
+     qint64 lastAction;
 };
 
 #endif // DOJONEURON_H

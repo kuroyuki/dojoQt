@@ -1,26 +1,27 @@
 #ifndef DOJOSYNAPSE_H
 #define DOJOSYNAPSE_H
 
-#include "dojo.h"
+//defines how much synapse is affecting neuron by each AP depending on its length
+#define LENGTH_CONST 0.5 //in mm - neurons closer than 0.5 is affecting more than 37%
+//defines how long synapse is affecting neuron by each AP
+#define TIME_CONST 50.0 // in ms - about 15 ms to add above 10% to neuron voltage
+
+#include "dojoneuron.h"
 
 class dojoSynapse
 {
 public :
-    dojoSynapse(double len, double perm);
-    void ap(double terminals);
-    double getVoltage(qint64 now);
+    dojoSynapse(QString syn, dojoStorage* str);
+    void ap(float terminals);
+    float getVoltage(qint64 now);
     void changePermability(qint64 now);
-
-    //void updateLength(double new_length);
-    double getLength(){return length;}
-    double getPermability(){return permability;}
 
     qint64 lastAction;
 
 private :
-    double length;
-    double permability;
-    double cleft;
+    QString synapse;
+    dojoStorage* storage;
+    float cleft;
 };
 
 #endif // DOJOSYNAPSE_H

@@ -1,13 +1,15 @@
 #include "dojosynapse.h"
+#include <QDateTime>
+#include "math.h"
 
-dojoSynapse::dojoSynapse(double len, double perm){
+dojoSynapse::dojoSynapse(QString syn, dojoStorage *str){
+    synapse = syn;
+    storage = str;
+
     cleft = 0;
     lastAction = QDateTime::currentMSecsSinceEpoch();
-    permability = perm;
-
-    length  = len;
 }
-double dojoSynapse::getVoltage(qint64 now){
+float dojoSynapse::getVoltage(qint64 now){
     //calc time-depend value
     float binded = 1-exp(-(now - lastAction)/TIME_CONST);
 
@@ -17,17 +19,22 @@ double dojoSynapse::getVoltage(qint64 now){
     //remove binded mediator from cleft
     cleft -= voltage;
 
+    float lengthCoef = exp(-storage->getSynapseLength(synapse)/LENGTH_CONST);
+
+    float vlt = voltage*lengthCoef*storage->getSynapsePermability(synapse);
+    //DEBUG
+    //qDebug()<<now<<" : "<<synapse<<'-'<<vlt;
     //return voltage which depends on length of this synapse and its permability
-    return voltage*exp(-length/LENGTH_CONST)*permability;
+    return vlt;
 }
-void dojoSynapse::ap(double terminals){
+void dojoSynapse::ap(float terminals){
     //save moment of this action
     lastAction = QDateTime::currentMSecsSinceEpoch();
     //release mediator from terminals to cleft
     cleft += terminals;
 }
 void dojoSynapse::changePermability(qint64 now){
-    qint64 diff = now-lastAction;
+    //qint64 diff = now-lastAction;
     //means AP happend
     //if this synapse is took part in AP e.g. lastAction < 20 ms
 
@@ -36,7 +43,4 @@ void dojoSynapse::changePermability(qint64 now){
     //qDebug()<<"time diff :"<<diff;
 }
 
-/*void dojoSynapse::updateLength(double new_length){
-    length = new_length;
-}*/
 

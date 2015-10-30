@@ -33,7 +33,7 @@ void dojoClient::connectToServer(){
     udpSocket->bind(QHostAddress::LocalHost, UDP_CLIENT_PORT);
     sendTimer->start(10);
 }
-void dojoClient::registerInput(dojoID id, double* data){
+void dojoClient::registerInput(dojoID id, float* data){
 
     if (!inputs.contains(id)){
         /*if(isTcpConnected){
@@ -53,7 +53,7 @@ void dojoClient::registerInput(dojoID id, double* data){
         inputs.insert(id, data);
     }
 }
-void dojoClient::registerOutput(dojoID id, double* data){
+void dojoClient::registerOutput(dojoID id, float* data){
     if(!outputs.contains(id)){
         /*if(isTcpConnected){
             //send request to get node id
@@ -89,7 +89,7 @@ void dojoClient::slotTimeout(){
             }
         }
         if(ba.length()){
-            udpSocket->writeDatagram(ba, QHostAddress(dojoHost), UDP_SERVER_PORT);
+            udpSocket->writeDatagram(ba, QHostAddress::Broadcast, UDP_SERVER_PORT);
         }
     /*
     }
@@ -175,9 +175,9 @@ void dojoClient::slotUdpReadyRead(){
 
         while(datagram.size()>11){
             dojoID target = *reinterpret_cast<const int*>(datagram.left(4).data());
-            double value = *reinterpret_cast<const double*>(datagram.mid(4,8).data());
+            float value = *reinterpret_cast<const float*>(datagram.mid(4,8).data());
 
-            double* data = outputs.value(target);
+            float* data = outputs.value(target);
             *data += value;
 
             datagram.remove(0,12);

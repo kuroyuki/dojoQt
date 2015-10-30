@@ -1,34 +1,44 @@
 #ifndef DOJOWSSERVER_H
 #define DOJOWSSERVER_H
 
-#include "dojo.h"
+#include <QObject>
+#include <QWebSocket>
+#include <QWebSocketServer>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include "dojostorage.h"
+#include "dojonetwork.h"
 
-class dojoStorage;
+#define WS_SERVER_PORT 1234
+
+class dojoNetwork;
 
 class dojoWsServer : public QObject
 {
     Q_OBJECT
+
 public:
-    explicit dojoWsServer(dojoStorage* str, QObject *parent = Q_NULLPTR);
+    explicit dojoWsServer(dojoStorage* str, dojoNetwork *dojo, QObject* parent = 0);
     ~dojoWsServer();
 
-Q_SIGNALS:
+signals:
     void wsEvent(QJsonObject event);
     void closed();
 
-private Q_SLOTS:
-    void eventHandler(QJsonObject json);
+public slots:
+    void eventHandler(QString event);
     void onNewConnection();
     void processTextMessage(QString message);
     void socketDisconnected();
 
 private:
+    QJsonObject parseEvent(QString event);
 
     QWebSocketServer *wsServer;
     QList<QWebSocket *> wsClients;
 
     dojoStorage* storage;
-
+    dojoNetwork* network;
 };
 
 #endif // DOJOWSSERVER_H

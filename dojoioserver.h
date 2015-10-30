@@ -1,32 +1,30 @@
 #ifndef DOJOIOSERVER_H
 #define DOJOIOSERVER_H
 
-#include "dojo.h"
+#include <QObject>
+#include <QUdpSocket>
 
-class dojoIOServer : public QObject
+#include "dojoneuron.h"
+
+#define UDP_SERVER_PORT 25098
+#define UDP_CLIENT_PORT 26128
+
+class dojoIOServer : public dojoNeuron
 {
-    Q_OBJECT
 public:
-    explicit dojoIOServer(QObject *parent = 0);
+    dojoIOServer(dojoStorage* storage);
+    void ap(dojoID source, float terminals);
 
-    void ap(dojoID source, double terminals);
-
-signals:
-    void serverAp(dojoID source, dojoID target, double value);
+    void addInput(dojoID source, dojoNeuron* target);
 
 public slots:
-    void eventHandler(QJsonObject event);
-
     void slotUdpReadyRead();
-    void slotUdpError(QAbstractSocket::SocketError error);
 
 private:
-
     QUdpSocket* udpSocket;
 
-    QHash<dojoID, dojoUdpSensor>sensors;
-    QHash<dojoID, dojoUdpAct>actuators;
-
+    QHash<dojoID, QList<dojoNeuron*> > inputs;
 };
+
 
 #endif // DOJOIOSERVER_H

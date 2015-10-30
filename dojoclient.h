@@ -2,8 +2,13 @@
 #define DOJOCLIENT_H
 
 #include <QObject>
-#include <QTcpSocket>
-#include "dojo.h"
+#include <QTimer>
+#include <QUdpSocket>
+
+#define UDP_SERVER_PORT 25098
+#define UDP_CLIENT_PORT 26128
+
+typedef int dojoID;
 
 class dojoClient : public QObject
 {
@@ -13,8 +18,8 @@ public:
     ~dojoClient();
 
     void connectToServer();
-    void registerInput(dojoID id, double* data);
-    void registerOutput(dojoID id, double* data);
+    void registerInput(dojoID id, float* data);
+    void registerOutput(dojoID id, float* data);
 
 signals:
 
@@ -31,8 +36,8 @@ public slots:
 
 private:
     QString dojoHost;
-    QHash<dojoID, double*> inputs;
-    QHash<dojoID, double*> outputs;
+    QHash<dojoID, float*> inputs;
+    QHash<dojoID, float*> outputs;
 
     QTimer* sendTimer;
     //QTcpSocket* tcpSocket;
