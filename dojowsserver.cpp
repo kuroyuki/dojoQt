@@ -1,5 +1,4 @@
 #include "dojowsserver.h"
-#include <QJsonObject>
 
 dojoWsServer::dojoWsServer(dojoStorage* str, dojoNetwork *dojo, QObject* parent) :
     QObject(parent),
@@ -95,10 +94,10 @@ void dojoWsServer::eventHandler(QString event){
     for(int i =0;i<wsClients.length();i++){
         wsClients[i]->sendTextMessage(QString::fromUtf8(jDoc.toJson()));
     }
-    qDebug()<<"dojoWS sent to clients:"<< QString::fromUtf8(jDoc.toJson(QJsonDocument::Compact));
+    //qDebug()<<"dojoWS sent to clients:"<< QString::fromUtf8(jDoc.toJson(QJsonDocument::Compact));
 }
 void dojoWsServer::processTextMessage(QString message){
-    qDebug()<<"WS client message :"<<message;
+    //qDebug()<<"WS client message :"<<message;
     QJsonDocument jdoc;
     jdoc.fromJson(message.toLocal8Bit());
 
@@ -116,7 +115,7 @@ void dojoWsServer::processTextMessage(QString message){
     }
 }
 void dojoWsServer::socketDisconnected(){
-    qDebug()<<"WS client disconnected :";
+    //qDebug()<<"WS client disconnected :";
 
     QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
        if (pClient) {

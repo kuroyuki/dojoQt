@@ -7,6 +7,7 @@
 #include "dojostorage.h"
 #include "dojoioserver.h"
 #include "dojowsserver.h"
+#include "dojologger.h"
 
 class dojoWsServer;
 
@@ -20,6 +21,7 @@ public:
     void bindNodes(dojoID source, dojoID target);
 
 signals:
+    void networkEvent(QString event);
 
 public slots:
     void process();
@@ -30,6 +32,7 @@ private:
     dojoStorage* storage;
     dojoIOServer* io;
     dojoWsServer* ws;
+    dojoLogger* logger;
 
     QHash<dojoID, dojoNeuron*> neurons;
 

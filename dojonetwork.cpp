@@ -9,6 +9,10 @@ dojoNetwork::dojoNetwork(QObject *parent) : QObject(parent)
     ws = new dojoWsServer(storage, this);
     connect(storage, SIGNAL(storageEvent(QString)), ws, SLOT(eventHandler(QString)));
 
+    logger = new dojoLogger();
+    connect(storage, SIGNAL(storageEvent(QString)), logger, SLOT(logEntry(QString)));
+    connect(this, SIGNAL(networkEvent(QString)), logger, SLOT(logEntry(QString)));
+
     restoreNetwork();
 
     timer = new QTimer();
@@ -99,7 +103,7 @@ void dojoNetwork::restoreNetwork(){
     for(int i=0;i<nodes.size();i++){
         if(!neurons.contains(nodes[i])){
             neurons[nodes[i]] = new dojoNeuron(storage, nodes[i]);
-            qDebug()<<"neuron restored "<<nodes[i];            
+            emit networkEvent("neuron restored "+QString::number(nodes[i]));
         }
     }
     //restoring synapses
@@ -124,7 +128,7 @@ void dojoNetwork::restoreNetwork(){
             neurons[source]->addTarget(neurons[target]);
             neurons[target]->addSource(source);
         }
-        qDebug()<<"synapse restored "<<synapses[i];
+        emit networkEvent("synapse restored "+synapses[i]);
     }
 }
 
