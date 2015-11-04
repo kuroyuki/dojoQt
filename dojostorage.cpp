@@ -7,8 +7,6 @@ dojoStorage::dojoStorage(QObject *parent) : QObject(parent)
     redis->connectToHost("localhost", 6379);
 
     redis->waitForConnected();
-
-    qDebug()<<"connected";
 }
 QString dojoStorage::writeCommand(QString cmd){
      redis->write(cmd.toLocal8Bit()+"\n");

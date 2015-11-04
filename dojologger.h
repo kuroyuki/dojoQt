@@ -2,6 +2,7 @@
 #define DOJOLOGGER_H
 
 #include <QObject>
+#include <QFile>
 
 class dojoLogger : public QObject
 {
@@ -15,7 +16,7 @@ public slots:
     void logEntry(QString entry);
 
 private :
-
+    QFile*  logFile;
 };
 
 #endif // DOJOLOGGER_H
