@@ -150,7 +150,7 @@ QList<dojoID> dojoStorage::getNeuronsInArea(QVector3D point, float atDistance){
 
             QVector3D diff = pos-point;
             float length = diff.length();
-            if(length-size <= atDistance)
+            if(length-(size/2) < atDistance)
                 neurons<<neuronID;
         }
 

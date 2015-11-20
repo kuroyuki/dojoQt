@@ -10,40 +10,31 @@
 
 typedef int dojoID;
 
+struct dojoAp{
+    dojoID id;
+    float data;
+};
+
 class dojoClient : public QObject
 {
     Q_OBJECT
 public:
-    explicit dojoClient( QString host, QObject *parent = 0);
+    explicit dojoClient(QHostAddress host, QObject *parent = 0);
     ~dojoClient();
 
     void connectToServer();
-    void registerInput(dojoID id, float* data);
-    void registerOutput(dojoID id, float* data);
+    void sendAp(dojoID source, float data);
 
 signals:
+    void dojoEvent(dojoAp ap);
 
 public slots:
-    /*
-    void slotTcpReadyRead();
-    void slotTcpDisconnected();
-    void slotTcpError(QAbstractSocket::SocketError error);
-    */
-    void slotTimeout();
-
     void slotUdpReadyRead();
     void slotUdpError(QAbstractSocket::SocketError error);
 
 private:
-    QString dojoHost;
-    QHash<dojoID, float*> inputs;
-    QHash<dojoID, float*> outputs;
-
-    QTimer* sendTimer;
-    //QTcpSocket* tcpSocket;
+    QHostAddress dojoHost;
     QUdpSocket* udpSocket;
-
-    //bool isTcpConnected;
 };
 
 #endif // DOJOCLIENT_H

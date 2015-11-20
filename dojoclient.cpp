@@ -1,20 +1,9 @@
 #include "dojoclient.h"
 #include <QDebug>
 
-dojoClient::dojoClient( QString host, QObject *parent) : QObject(parent)
+dojoClient::dojoClient(QHostAddress host, QObject *parent) : QObject(parent)
 {
     dojoHost = host;
-
-    /*//create TCP socket
-    tcpSocket = new QTcpSocket();
-    connect(tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotTcpError(QAbstractSocket::SocketError)));
-    connect(tcpSocket, SIGNAL(readyRead()), this, SLOT(slotTcpReadyRead()));
-    connect(tcpSocket, SIGNAL(disconnected()), this, SLOT(slotTcpDisconnected()));
-
-    isTcpConnected = false;*/
-
-    sendTimer = new QTimer(this);
-    connect(sendTimer, SIGNAL(timeout()), this, SLOT(slotTimeout()));
 
     //connect UDP
     udpSocket = new QUdpSocket();
@@ -23,147 +12,28 @@ dojoClient::dojoClient( QString host, QObject *parent) : QObject(parent)
 
     qDebug()<<"dojoClient created"<<endl;
 }
-
 dojoClient::~dojoClient()
 {
 
 }
 void dojoClient::connectToServer(){
     qDebug()<<"connecting to dojo server"<<endl;
-    udpSocket->bind(QHostAddress::LocalHost, UDP_CLIENT_PORT);
-    sendTimer->start(10);
+    udpSocket->bind(QHostAddress::Any, UDP_CLIENT_PORT);
+
 }
-void dojoClient::registerInput(dojoID id, float* data){
-
-    if (!inputs.contains(id)){
-        /*if(isTcpConnected){
-            QByteArray ba;
-            int t = 0;
-            ba.append(t);
-            ba.append(id>>24);
-            ba.append(id>>16);
-            ba.append(id>>8);
-            ba.append(id);
-
-            tcpSocket->write(ba, ba.length());
-            tcpSocket->waitForBytesWritten();
-        }*/
-
-        //save data with id
-        inputs.insert(id, data);
-    }
-}
-void dojoClient::registerOutput(dojoID id, float* data){
-    if(!outputs.contains(id)){
-        /*if(isTcpConnected){
-            //send request to get node id
-            QByteArray ba;
-            ba.append(id>>24);
-            ba.append(id>>16);
-            ba.append(id>>8);
-            ba.append(id);
-            ba.prepend(0x01);
-
-            tcpSocket->write(ba, ba.length());
-            tcpSocket->waitForBytesWritten();
-        }
-        */
-        outputs.insert(id,  data);
-    }
-}
-void dojoClient::slotTimeout(){
-    /*
-    //if TCP connected
-    if(isTcpConnected){
-    */
-        //send update via UDP
+void dojoClient::sendAp(dojoID source, float data){
+    if(data>0) {
         QByteArray ba;
 
-        QList<dojoID> keys = inputs.keys();
-        for(int i=0;i<keys.size();i++){
-            dojoID target = keys[i];
-            double dbl = *inputs.value(target);
-            if(dbl>0) {
-                ba.append(reinterpret_cast<const char*>(&target), sizeof(target));
-                ba.append(reinterpret_cast<const char*>(&dbl), sizeof(dbl));
-            }
-        }
-        if(ba.length()){
-            udpSocket->writeDatagram(ba, QHostAddress::Broadcast, UDP_SERVER_PORT);
-        }
-    /*
+        ba.append(reinterpret_cast<const char*>(&source), sizeof(source));
+        ba.append(reinterpret_cast<const char*>(&data), sizeof(data));
+
+        //send to server
+        udpSocket->writeDatagram(ba, dojoHost, UDP_SERVER_PORT);
     }
-    else {
-        //make connection with the server
-        tcpSocket->connectToHost(dojoHost,TCP_PORT);
-        if(tcpSocket->waitForConnected(1000)){
-
-            //register all sensors
-            QByteArray ba;
-            QList<dojoID> list = inputs.keys();
-            for(int i=0;i<list.size();i++){
-                dojoID id = list[i];
-
-                //send node id
-                int t = 0;
-                ba.append(t);
-                ba.append(id>>24);
-                ba.append(id>>16);
-                ba.append(id>>8);
-                ba.append(id);
-
-            }
-            //register all actuators
-            list = outputs.keys();
-            for(int i=0;i<list.size();i++){
-                dojoID id = list[i];
-
-                //send node id
-                ba.append(0x01);
-                ba.append(id>>24);
-                ba.append(id>>16);
-                ba.append(id>>8);
-                ba.append(id);
-
-            }
-
-            tcpSocket->write(ba, ba.length());
-            tcpSocket->waitForBytesWritten();
-            isTcpConnected = true;
-
-            qDebug()<<"Tcp connected "<<endl;
-
-            udpSocket->bind(QHostAddress::LocalHost, UDP_CLIENT_PORT);
-        }
-    }
-   */
 }
-/*
-void dojoClient::slotTcpReadyRead(){
-
-}
-void dojoClient::slotTcpDisconnected(){
-    //wait for 1 sec and retry to connect
-    qDebug()<<"Tcp disconnected, reconnecting.. "<<endl;
-    isTcpConnected = false;
-}
-
-void dojoClient::slotTcpError(QAbstractSocket::SocketError error){
-    //wait for 1 sec and retry to connect
-    qDebug()<<"Tcp error, reconnecting.. "<<error<<endl;
-    isTcpConnected = false;
-
-    tcpSocket->close();
-    udpSocket->close();
-}
-*/
 void dojoClient::slotUdpError(QAbstractSocket::SocketError error){
-    //wait for 1 sec and retry to connect
-    qDebug()<<"Udp error, reconnecting.. "<<error<<endl;
-    //isTcpConnected = false;
-
-    //tcpSocket->close();
-    //udpSocket->close();
+    qDebug()<<"Udp error "<<error<<endl;
 }
 
 void dojoClient::slotUdpReadyRead(){
@@ -173,14 +43,14 @@ void dojoClient::slotUdpReadyRead(){
 
         udpSocket->readDatagram(datagram.data(), datagram.size());
 
-        while(datagram.size()>11){
-            dojoID target = *reinterpret_cast<const int*>(datagram.left(4).data());
-            float value = *reinterpret_cast<const float*>(datagram.mid(4,8).data());
+        while(datagram.size()>7){
 
-            float* data = outputs.value(target);
-            *data += value;
+            dojoAp ap;
+            ap.id = *reinterpret_cast<const int*>(datagram.left(4).data());
+            ap.data = *reinterpret_cast<const float*>(datagram.mid(4,8).data());
+            emit dojoEvent(ap);
 
-            datagram.remove(0,12);
+            datagram.remove(0,8);
         }
     }
 }

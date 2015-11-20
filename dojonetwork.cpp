@@ -52,13 +52,19 @@ void dojoNetwork::process(){
     timer->start(timeout);
 }
 dojoID dojoNetwork::createNode(QVector3D pos, QVector3D axon, float size){
-    dojoID id = storage->getNextID();
+    //if no neurons in this area
+    QList<dojoID> neighbours = storage->getNeuronsInArea(pos, size/2);
+    if(!neighbours.size()){
+        dojoID id = storage->getNextID();
 
-    neurons[id] = new dojoNeuron(storage, id);
-    storage->addNeuron(id, pos, axon, size, 1);
-    storage->setNextID(id+1);
+        neurons[id] = new dojoNeuron(storage, id);
+        storage->addNeuron(id, pos, axon, size, 1);
+        storage->setNextID(id+1);
 
-    return id;
+        return id;
+    }
+    //return previously created neuron
+    else return neighbours[0];
 }
 void dojoNetwork::bindNodes(dojoID source, dojoID target){
     QString synapse = QString::number(source)+":"+QString::number(target);

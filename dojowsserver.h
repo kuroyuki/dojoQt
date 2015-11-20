@@ -9,7 +9,7 @@
 #include "dojostorage.h"
 #include "dojonetwork.h"
 
-#define WS_SERVER_PORT 1234
+#define WS_SERVER_PORT 10167
 
 class dojoNetwork;
 
