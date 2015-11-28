@@ -20,6 +20,8 @@ dojoWsServer::~dojoWsServer()
 {
    wsServer->close();
    qDeleteAll(wsClients.begin(), wsClients.end());
+
+   emit wsEvent("ws closed");
 }
 
 void dojoWsServer::onNewConnection()
@@ -86,8 +88,8 @@ void dojoWsServer::onNewConnection()
 
        newClient->sendTextMessage(QString::fromUtf8(jdoc.toJson()));
    }
+   emit wsEvent("new ws client from "+ newClient->peerAddress().toString());
 }
-
 void dojoWsServer::eventHandler(QString event){
     QJsonDocument jDoc(parseEvent(event));
 
@@ -105,13 +107,65 @@ void dojoWsServer::processTextMessage(QString message){
     QString command = json.take("command").toString();
 
     if(command == "an"){
+        QVector3D pos;
+        QJsonObject posJson = json.take("pos").toObject();
+        pos.setX(posJson.take("x").toDouble());
+        pos.setY(posJson.take("y").toDouble());
+        pos.setZ(posJson.take("z").toDouble());
 
+        QVector3D axon;
+        QJsonObject axonJson = json.take("axon").toObject();
+        axon.setX(axonJson.take("x").toDouble());
+        axon.setY(axonJson.take("y").toDouble());
+        axon.setZ(axonJson.take("z").toDouble());
+
+        network->createNode(pos, axon, json.take("source").toDouble());
     }
     else if(command == "as"){
         dojoID source = json.take("source").toInt();
         dojoID target = json.take("target").toInt();
 
         network->bindNodes(source, target);
+    }
+    else if(command == "un"){
+        dojoID neuron = json.take("id").toInt();
+        QStringList list = json.keys();
+        QString param = list[0];
+        if(param == "axon"){
+            QVector3D axon;
+            QJsonObject axonJson = json.take(param).toObject();
+            axon.setX(axonJson.take("x").toDouble());
+            axon.setY(axonJson.take("y").toDouble());
+            axon.setZ(axonJson.take("z").toDouble());
+
+            storage->setNeuronAxon(neuron, axon);
+        }
+        else if(param == "pos"){
+            QVector3D pos;
+            QJsonObject posJson = json.take("pos").toObject();
+            pos.setX(posJson.take("x").toDouble());
+            pos.setY(posJson.take("y").toDouble());
+            pos.setZ(posJson.take("z").toDouble());
+
+            storage->setNeuronPosition(neuron, pos);
+        }
+        else if(param == "size"){
+            float size = json.take(param).toDouble();
+            storage->setNeuronSize(neuron, size);
+        }
+        else if(param == "terminals"){
+            float term = json.take(param).toDouble();
+            storage->setNeuronTerminals(neuron, term);
+        }
+    }
+    //update existing synapse params
+    else if(command == "us"){
+
+    }
+    //subsribe for spikes from neuron
+    else if(command == "sfs"){
+        dojoID id = json.take("id").toInt();
+        network->subscribeWsForSpikes(id);
     }
 }
 void dojoWsServer::socketDisconnected(){
@@ -129,23 +183,46 @@ QJsonObject dojoWsServer::parseEvent(QString event){
     QStringList list = event.split(" ");
     if(list[0] == "hmset"){
         if(list[1].contains("neurons:")){
-            json.insert("command", "an");
-            json.insert("id", list[1].replace("neurons:", "").toInt());
+            //this is new entry with full info
+            if(list.size()>8){
+                json.insert("command", "an");
+                json.insert("id", list[1].replace("neurons:", "").toInt());
 
-            QJsonObject posJson;
-            posJson.insert("x", list[3].toFloat());
-            posJson.insert("y", list[5].toFloat());
-            posJson.insert("z", list[7].toFloat());
+                QJsonObject posJson;
+                posJson.insert("x", list[3].toFloat());
+                posJson.insert("y", list[5].toFloat());
+                posJson.insert("z", list[7].toFloat());
 
-            QJsonObject axonJson;
-            axonJson.insert("x", list[9].toFloat());
-            axonJson.insert("y", list[11].toFloat());
-            axonJson.insert("z", list[13].toFloat());
+                QJsonObject axonJson;
+                axonJson.insert("x", list[9].toFloat());
+                axonJson.insert("y", list[11].toFloat());
+                axonJson.insert("z", list[13].toFloat());
 
-            json.insert("pos", posJson);
-            json.insert("axon", axonJson);
-            json.insert("size", list[15].toFloat());
-            json.insert("terminals", list[17].toFloat());
+                json.insert("pos", posJson);
+                json.insert("axon", axonJson);
+                json.insert("size", list[15].toFloat());
+                json.insert("terminals", list[17].toFloat());
+            }
+            //this is single parameter changing (position or axon position)
+            else{
+                //set command type as Update
+                json.insert("command", "un");
+                json.insert("id", list[1].replace("neurons:", "").toInt());
+
+                QJsonObject posJson;
+                posJson.insert("x", list[3].toFloat());
+                posJson.insert("y", list[5].toFloat());
+                posJson.insert("z", list[7].toFloat());
+
+                //Position updating
+                if(list[2] == "pos"){
+                    json.insert("pos", posJson);
+                }
+                //Axon Position updating
+                else{
+                   json.insert("axon", posJson);
+                }
+            }
         }
         else if(list[1].contains("synapses:")){
             QStringList synList = list[1].replace("synapses:", "").split(':');
@@ -165,9 +242,7 @@ QJsonObject dojoWsServer::parseEvent(QString event){
             json.insert("command", "un");
             json.insert("id", list[1].replace("neurons:", "").toInt());
 
-            for(int i=2;i<list.length();i=i+2){
-                json.insert(list[i], list[i+1].toFloat());
-            }
+            json.insert(list[2], list[3].toFloat());
         }
         else if(list[1].contains("synapses:")){
             QStringList synList = list[1].replace("synapses:", "").split(':');
@@ -183,4 +258,16 @@ QJsonObject dojoWsServer::parseEvent(QString event){
         }
     }
     return json;
+}
+void dojoWsServer::handleSpike(dojoID id, float term){
+    QJsonObject json;
+    json.insert("command", "spike");
+    json.insert("id", id);
+    json.insert("term", term);
+
+    QJsonDocument jDoc(json);
+
+    for(int i =0;i<wsClients.length();i++){
+        wsClients[i]->sendTextMessage(QString::fromUtf8(jDoc.toJson()));
+    }
 }

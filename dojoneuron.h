@@ -22,23 +22,23 @@ class dojoNeuron : public QObject
 public:
     explicit dojoNeuron(dojoStorage* str, dojoID node_id, QObject *parent = 0);
 
-    virtual void ap(dojoID source, float terminals);    
     void process();
     qint64 getNextCheck(){return nextCheck;}
 
     void addSource(dojoID source);
-    void addTarget(dojoNeuron* target);
 
 signals:
+    void neuronEvent(QString event);
+    void spike(dojoID id, float term);
 
 public slots:
+    virtual void handleSpike(dojoID source, float terminals);
     virtual void slotUdpReadyRead(){};
 
 private :
      dojoStorage* storage;
      dojoID id;
 
-     QList<dojoNeuron*> targets;
      QHash<dojoID, dojoSynapse*>sources;
 
      float voltage;

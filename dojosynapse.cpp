@@ -27,7 +27,7 @@ float dojoSynapse::getVoltage(qint64 now){
     //return voltage which depends on length of this synapse and its permability
     return vlt;
 }
-void dojoSynapse::ap(float terminals){
+void dojoSynapse::handleSpike(float terminals){
     //save moment of this action
     lastAction = QDateTime::currentMSecsSinceEpoch();
     //release mediator from terminals to cleft

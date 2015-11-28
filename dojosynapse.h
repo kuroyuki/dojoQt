@@ -12,7 +12,7 @@ class dojoSynapse
 {
 public :
     dojoSynapse(QString syn, dojoStorage* str);
-    void ap(float terminals);
+    void handleSpike(float terminals);
     float getVoltage(qint64 now);
     void changePermability(qint64 now);
 

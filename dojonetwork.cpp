@@ -12,6 +12,7 @@ dojoNetwork::dojoNetwork(QObject *parent) : QObject(parent)
     logger = new dojoLogger();
     connect(storage, SIGNAL(storageEvent(QString)), logger, SLOT(logEntry(QString)));
     connect(this, SIGNAL(networkEvent(QString)), logger, SLOT(logEntry(QString)));
+    connect(ws, SIGNAL(wsEvent(QString)), logger, SLOT(logEntry(QString)));
 
     logger->logEntry("network starting...");
 
@@ -21,15 +22,16 @@ dojoNetwork::dojoNetwork(QObject *parent) : QObject(parent)
     timeout = 10;
 
     //processing neurnos upon timer signals
-    connect(timer, SIGNAL(timeout()), this, SLOT(process()));    
+    connect(timer, SIGNAL(timeout()), this, SLOT(process()));
+
+    //bind spike from IO for immedate handling
+    connect(io, SIGNAL(spike(dojoID,float)), this, SLOT(process()));
 }
 void dojoNetwork::start(){
     timer->start(timeout);
-    networkEvent("network start");
+    emit networkEvent("network started");
 }
-
 void dojoNetwork::process(){
-
     qint64 now = QDateTime::currentMSecsSinceEpoch();
 
     foreach (dojoNeuron* neuron, neurons)
@@ -61,10 +63,18 @@ dojoID dojoNetwork::createNode(QVector3D pos, QVector3D axon, float size){
         storage->addNeuron(id, pos, axon, size, 1);
         storage->setNextID(id+1);
 
+        connect(neurons[id], SIGNAL(neuronEvent(QString)), logger, SLOT(logEntry(QString)));
+
         return id;
     }
     //return previously created neuron
-    else return neighbours[0];
+    else{
+        dojoID id = neighbours[0];
+        //updat existing neuron with new values
+        storage->setNeuronAxon(id, axon);
+        storage->setNeuronSize(id, size);
+        return id;
+    }
 }
 void dojoNetwork::bindNodes(dojoID source, dojoID target){
     QString synapse = QString::number(source)+":"+QString::number(target);
@@ -74,8 +84,9 @@ void dojoNetwork::bindNodes(dojoID source, dojoID target){
 
     //source is IO and target is Neuron
     if(!neurons.contains(source) && neurons.contains(target)){
-        io->addInput(source, neurons[target]);
+        //bind IO spikes from source and target
         neurons[target]->addSource(source);
+        connect(io, SIGNAL(spike(dojoID,float)), neurons[target], SLOT(handleSpike(dojoID,float)));
 
         //save synapse with default params
         storage->addSynapse(synapse, 1, 1);
@@ -86,7 +97,8 @@ void dojoNetwork::bindNodes(dojoID source, dojoID target){
     //source is Neuron and target is IO
     else if(!neurons.contains(target)){
         //adding IO as target
-       neurons[source]->addTarget(io);
+       connect(neurons[source], SIGNAL(spike(dojoID,float)), io, SLOT(handleSpike(dojoID,float)));
+
        //save synapse with default perm
        storage->addSynapse(synapse, 1, 1);
        //exclude source id and below for new neurons
@@ -95,13 +107,14 @@ void dojoNetwork::bindNodes(dojoID source, dojoID target){
     }
     //both are Neurons
     else {
-        neurons[source]->addTarget(neurons[target]);
+        //bind both neurons
         neurons[target]->addSource(source);
+        connect(neurons[source], SIGNAL(spike(dojoID,float)), neurons[target], SLOT(handleSpike(dojoID,float)));
 
         //calculate length between axon of source and Target's position
         QVector3D diff = storage->getNeuronPosition(target) - storage->getNeuronAxon(source);
         //save synapse with default perm
-        storage->addSynapse(synapse, 1, diff.length());
+        storage->addSynapse(synapse, DEFAULT_PERM, diff.length());
     }
 }
 
@@ -111,6 +124,7 @@ void dojoNetwork::restoreNetwork(){
     for(int i=0;i<nodes.size();i++){
         if(!neurons.contains(nodes[i])){
             neurons[nodes[i]] = new dojoNeuron(storage, nodes[i]);
+            connect(neurons[nodes[i]], SIGNAL(neuronEvent(QString)), logger, SLOT(logEntry(QString)));
             emit networkEvent("restore neuron "+QString::number(nodes[i]));
         }
     }
@@ -123,20 +137,22 @@ void dojoNetwork::restoreNetwork(){
 
         //source is IO and target is Neuron
         if(!neurons.contains(source) && neurons.contains(target)){
-            io->addInput(source, neurons[target]);
             neurons[target]->addSource(source);
+            connect(io, SIGNAL(spike(dojoID,float)), neurons[target], SLOT(handleSpike(dojoID,float)));
         }
         //source is Neuron and target is IO
         else if(!neurons.contains(target)){
             //adding IO as target
-           neurons[source]->addTarget(io);
+           connect(neurons[source], SIGNAL(spike(dojoID,float)), io, SLOT(handleSpike(dojoID,float)));
         }
         //both are Neurons
         else {
-            neurons[source]->addTarget(neurons[target]);
             neurons[target]->addSource(source);
+            connect(neurons[source], SIGNAL(spike(dojoID,float)), neurons[target], SLOT(handleSpike(dojoID,float)));
         }
         emit networkEvent("restore synapse "+synapses[i]);
     }
 }
-
+void dojoNetwork::subscribeWsForSpikes(dojoID neuron){
+    connect(neurons[neuron], SIGNAL(spike(dojoID,float)), ws, SLOT(handleSpike(dojoID,float)));
+}
