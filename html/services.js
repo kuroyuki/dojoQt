@@ -9,7 +9,7 @@
 app.factory('Tables', function () {
   var table = [];
   return {
-    neurons : table,
+    neurons : table, 
     getNeuron : function(id){
       var data;
 
