@@ -42,13 +42,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-html/dojoWsHandler.js
-html/lib/angular.js
-html/lib/angular.min.js
-html/lib/bootstrap.min.js
-html/lib/Chart.min.js
-html/lib/jquery.min.js
-html/lib/ng-websocket.js
-html/lib/OrbitControl.js
-html/lib/three.min.js
-html/css/bootstrap.min.css
+html/lib
+html/css
+examples/dojoApp/build
+examples/dojoApp/dojoApp.pro.user
