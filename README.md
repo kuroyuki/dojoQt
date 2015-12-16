@@ -5,8 +5,9 @@ Dojo is a system which should implement brain-like behaviour.
 
 It requires Redis http://redis.io/ as a backend storage.
 
-Example :
+Example project in /examples/dojoApp project.
 
+Simple usage:
   
       dojoNetwork network;
       
@@ -17,6 +18,9 @@ Example :
       
       //let's go
       network.start();
+      
+      
+Admin tools in /html/index.html - work through Websockets
 
 
 
