@@ -13,7 +13,7 @@ class dojoIOServer : public dojoNeuron
 {
 public:
     dojoIOServer(dojoStorage* storage);
-    void ap(dojoID source, float terminals);
+    void handleSpike(dojoID source, float terminals);
 
     void addInput(dojoID source, dojoNeuron* target);
 
@@ -22,8 +22,6 @@ public slots:
 
 private:
     QUdpSocket* udpSocket;
-
-    QHash<dojoID, QList<dojoNeuron*> > inputs;
 };
 
 

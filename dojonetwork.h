@@ -1,6 +1,8 @@
 #ifndef DOJONETWORK_H
 #define DOJONETWORK_H
 
+#define DEBUG
+
 #include <QObject>
 #include <QTimer>
 
@@ -8,6 +10,8 @@
 #include "dojoioserver.h"
 #include "dojowsserver.h"
 #include "dojologger.h"
+
+#define DEFAULT_PERM 5 //default permability for all new synapses
 
 class dojoWsServer;
 
@@ -19,6 +23,7 @@ public:
     void start();
     dojoID createNode(QVector3D pos, QVector3D axon, float size);
     void bindNodes(dojoID source, dojoID target);
+    void subscribeWsForSpikes(dojoID neuron);
 
 signals:
     void networkEvent(QString event);

@@ -22,11 +22,13 @@ public:
     ~dojoWsServer();
 
 signals:
-    void wsEvent(QJsonObject event);
+    void wsEvent(QString event);
     void closed();
 
 public slots:
     void eventHandler(QString event);
+    void handleSpike(dojoID id, float term);
+
     void onNewConnection();
     void processTextMessage(QString message);
     void socketDisconnected();

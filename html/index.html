@@ -1,33 +1,146 @@
-<html>
-  	<head>
-	    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-	    <title>dojo client</title>
-	    <style>
-			#mainScene {
-				background: #FFFFFF;
-				width: 800px;
-				height: 600px;
-			}
-		</style>
+<html ng-app="dojoAdmin">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"></meta>
+		<title>dojo Admin</title>
+    <link rel="StyleSheet" type="text/css"  href="css/bootstrap.min.css"/>
+  </head>
+	<body class="container-fliud" ng-controller="MainController as mainCtrl">
+    <div class="row">
+			<div class="col-md-8" id="container">
+			</div>
+      <div class="col-md-4" id="adminWidget" ng-controller="WidgetController as widgetCtrl">
+				<h3 ng-class="{ active:widgetCtrl.isSelected(1)}">
+					<a href ng-click="widgetCtrl.selectTab(1)"> Create new neuron</a>
+				</h3>
+				<form name="newNeuronForm"	ng-submit="widgetCtrl.addNeuron()"
+																		ng-show="widgetCtrl.isSelected(1)">
+	        <h5 class="text-primary"> Neuron position</h5>
+	        <div>
+	  				<input placeholder="X" ng-model="widgetCtrl.newPos.x"/>
+	  				<input placeholder="Y" ng-model="widgetCtrl.newPos.y"/>
+						<input placeholder="Z" ng-model="widgetCtrl.newPos.z"/>
+	        </div>
+					<h5 class="text-primary"> Axon position</h5>
+	        <div>
+	  				<input placeholder="X" ng-model="widgetCtrl.newAxon.x"/>
+	  				<input placeholder="Y" ng-model="widgetCtrl.newAxon.y"/>
+						<input placeholder="Z" ng-model="widgetCtrl.newAxon.z"/>
+	        </div>
+					<h5 class="text-primary"> Size</h5>
+	        <div>
+	  				<input ng-model="widgetCtrl.newSize"/>
+					</div>
+					<fieldset class="form-group">
+						<input type="submit" value="Add new neuron"/>
+					</fieldset>
+			</form>
+			<h3 ng-class="{ active:widgetCtrl.isSelected(2)}">
+				<a href ng-click="widgetCtrl.selectTab(2)"> Bind neurons</a>
+			</h3>
 
-	    <script src="static/three.min.js"></script>   
-		<script src="static/jquery.min.js"></script>
-		
-	</head>
+			<form name="newSynapseForm"	ng-submit="widgetCtrl.addSynapse()"
+																	ng-show="widgetCtrl.isSelected(2)">
+				<div>
+					<input placeholder="Source id" ng-model="widgetCtrl.newSynapse.source"/>
+	      </div>
+				<div>
+					<input placeholder="Target id" ng-model="widgetCtrl.newSynapse.target"/>
+	      </div>
+				<fieldset class="form-group">
+					<input type="submit" value="Bind these neurons"/>
+				</fieldset>
+			</form>
+			<h3 ng-class="{ active:widgetCtrl.isSelected(3)}">
+				<a href ng-click="widgetCtrl.selectTab(3)">Neurons table</a>
+			</h3>
+			<div ng-show="widgetCtrl.isSelected(3)">
+				<div class="table-responsive">
+					<table class="table table-hover">
+						<tr>
+								 <td class="active">Id</td>
+								 <td class="active">Position</td>
+								 <td class="active">Axon</td>
+								 <td class="active">Size</td>
+								 <td class="active">Sources</td>
+								 <td class="active">Targets</td>
+						</tr>
+						<tr ng-repeat="neuron in widgetCtrl.neurons" ng-click="widgetCtrl.selectNeuron(neuron)">
+							<td class="active" ng-model="neuron.id">{{neuron.id}}</td>
+							<td class="active" ng-model="neuron.pos">{{neuron.pos.x}}, {{neuron.pos.y}}, {{neuron.pos.z}}</td>
+							<td class="active" ng-model="neuron.axon">{{neuron.axon.x}}, {{neuron.axon.y}}, {{neuron.axon.z}}</td>
+							<td class="active" ng-model="neuron.size">{{neuron.size}}</td>
+							<td class="active" >
+								<select class="form-control">
+                  <option ng-repeat="source in neuron.sources">{{source}}</option>
+                </select>
+							</td>
+							<td class="active">
+								<select class="form-control">
+									<option ng-repeat="target in neuron.targets">{{target}}</option>
+								</select>
+							</td>
+						</tr>
+					</table>
+				</div>
+				<div>
+					<p class="text-primary"> Id
+  					<input ng-model="widgetCtrl.selectedNeuron.id"/>
+					</p>
+					<p class="text-primary"> Size
+	  				<input ng-model="widgetCtrl.selectedNeuron.size"/>
+					</p>
+					<p class="text-primary">Position</p>
+					<p>
+						<input ng-model="widgetCtrl.selectedNeuron.pos.x"/>
+						<input ng-model="widgetCtrl.selectedNeuron.pos.y"/>
+						<input ng-model="widgetCtrl.selectedNeuron.pos.z"/>
+					</p>
+					<p class="text-primary"> Axon</p>
+					<p>
+						<input ng-model="widgetCtrl.selectedNeuron.axon.x"/>
+						<input ng-model="widgetCtrl.selectedNeuron.axon.y"/>
+						<input ng-model="widgetCtrl.selectedNeuron.axon.z"/>
+					</p>
+					<h5 class="text-primary"> Sources</h5>
+					<div>
+						<select class="form-control">
+							<option ng-repeat="source in widgetCtrl.selectedNeuron.sources" ng-click="widgetCtrl.selectTarget(source.id)">{{source}}</option>
+						</select>
+					</div>
+					<h5 class="text-primary"> Targets</h5>
+					<div>
+						<select class="form-control">
+							<option ng-repeat="target in widgetCtrl.selectedNeuron.targets" ng-click="widgetCtrl.selectTarget(target)">{{target}}</option>
+						</select>
+					</div>
+				</div>
+				<p class="text-primary"> Selected synapse
+					<input ng-model="widgetCtrl.selectedSynapse.source"/>
+					<input ng-model="widgetCtrl.selectedSynapse.target"/>
+				</p>
+				<form name="addToWatchForm"	ng-submit="widgetCtrl.addToWatch()">
+					<fieldset class="form-group">
+						<input type="submit" value="Add to watch"/>
+					</fieldset>
+				</form>
+			</div>
+			<h3 ng-class="{ active:widgetCtrl.isSelected(4)}">
+				<a href ng-click="widgetCtrl.selectTab(4)">Synapse watching</a>
+			</h3>
+			<div ng-show="widgetCtrl.isSelected(4)" ng-controller="ChartController as chartCtrl">
+				<canvas id="myChart" width="400" height="400"></canvas>
+			</div>
+    </div>
+		<script src="lib/OrbitControls.js"></script>
+	  <script src="lib/angular.min.js"></script>
+		<script src="lib/ng-websocket.js"></script>
+		<script src="lib/three.min.js"></script>
 
-	<body>
-		
-		<div id="mainScene">
-		</div>	
-	</body>	
-	<script src="dojoWsHandler.js"></script>   
-	<script src="dojoDrawing.js"></script>
-	<script src="OrbitControl.js"></script>
-	<script type="text/javascript">
+		<script src="lib/Chart.min.js"></script>
 
-   		setupDrawScene();		
-		var wsUri = "ws://localhost:10167/";			
-		connectWebSocket(wsUri);
-	</script>
+		<script src="app.js"></script>
+		<script src="controllers.js"></script>
+		<script src="services.js"></script>
 
-</html> 
+  </body>
+</html>
