@@ -50,6 +50,11 @@
 					<input type="submit" value="Bind these neurons"/>
 				</fieldset>
 			</form>
+                        <h3 ng-class="{ active:widgetCtrl.isSelected(4)}">
+                                <a href ng-click="widgetCtrl.selectTab(4)">Neuron watching</a>
+                        </h3>
+                        <div id="myChart" ng-show="widgetCtrl.isSelected(4)"  style="height: 300px; width:100%;">
+                        </div>
 			<h3 ng-class="{ active:widgetCtrl.isSelected(3)}">
 				<a href ng-click="widgetCtrl.selectTab(3)">Neurons table</a>
 			</h3>
@@ -86,6 +91,11 @@
 					<p class="text-primary"> Id
   					<input ng-model="widgetCtrl.selectedNeuron.id"/>
 					</p>
+                                        <form name="addToWatchForm"	ng-submit="widgetCtrl.addToWatch()">
+                                                <fieldset class="form-group">
+                                                        <input type="submit" value="Add to watch"/>
+                                                </fieldset>
+                                        </form>
 					<p class="text-primary"> Size
 	  				<input ng-model="widgetCtrl.selectedNeuron.size"/>
 					</p>
@@ -117,26 +127,15 @@
 				<p class="text-primary"> Selected synapse
 					<input ng-model="widgetCtrl.selectedSynapse.source"/>
 					<input ng-model="widgetCtrl.selectedSynapse.target"/>
-				</p>
-				<form name="addToWatchForm"	ng-submit="widgetCtrl.addToWatch()">
-					<fieldset class="form-group">
-						<input type="submit" value="Add to watch"/>
-					</fieldset>
-				</form>
-			</div>
-			<h3 ng-class="{ active:widgetCtrl.isSelected(4)}">
-				<a href ng-click="widgetCtrl.selectTab(4)">Synapse watching</a>
-			</h3>
-			<div ng-show="widgetCtrl.isSelected(4)" ng-controller="ChartController as chartCtrl">
-				<canvas id="myChart" width="400" height="400"></canvas>
-			</div>
+				</p>				
+			</div>			
     </div>
-		<script src="lib/OrbitControls.js"></script>
-	  <script src="lib/angular.min.js"></script>
+
+                <script src="lib/angular.min.js"></script>
 		<script src="lib/ng-websocket.js"></script>
 		<script src="lib/three.min.js"></script>
-
-		<script src="lib/Chart.min.js"></script>
+                <script src="lib/OrbitControls.js"></script>
+                <script src="lib/canvasjs.min.js"></script>
 
 		<script src="app.js"></script>
 		<script src="controllers.js"></script>

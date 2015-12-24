@@ -39,221 +39,205 @@ app.factory('Websocket', function ($websocket){
 
 });
 app.service('ChartDrawing', function(){
-  var data = {
-  	  labels: ["January", "February", "March", "April", "May", "June", "July"],
-  	  datasets: [
-  	      {
-  	          label: "My First dataset",
-  	          fillColor: "rgba(220,220,220,0.2)",
-  	          strokeColor: "rgba(220,220,220,1)",
-  	          pointColor: "rgba(220,220,220,1)",
-  	          pointStrokeColor: "#fff",
-  	          pointHighlightFill: "#fff",
-  	          pointHighlightStroke: "rgba(220,220,220,1)",
-  	          data: []
-  	      },
-  	      {
-  	          label: "My Second dataset",
-  	          fillColor: "rgba(151,187,205,0.2)",
-  	          strokeColor: "rgba(151,187,205,1)",
-  	          pointColor: "rgba(151,187,205,1)",
-  	          pointStrokeColor: "#fff",
-  	          pointHighlightFill: "#fff",
-  	          pointHighlightStroke: "rgba(151,187,205,1)",
-  	          data: []
-  	      }
-  	  ]
-  	};
-  var options = {
-    ///Boolean - Whether grid lines are shown across the chart
-    scaleShowGridLines : true,
-    //String - Colour of the grid lines
-    scaleGridLineColor : "rgba(0,0,0,.05)",
-    //Number - Width of the grid lines
-    scaleGridLineWidth : 1,
-    //Boolean - Whether to show horizontal lines (except X axis)
-    scaleShowHorizontalLines: true,
-    //Boolean - Whether to show vertical lines (except Y axis)
-    scaleShowVerticalLines: true,
-    //Boolean - Whether the line is curved between points
-    bezierCurve : true,
-    //Number - Tension of the bezier curve between points
-    bezierCurveTension : 0.4,
-    //Boolean - Whether to show a dot for each point
-    pointDot : true,
-    //Number - Radius of each point dot in pixels
-    pointDotRadius : 4,
-    //Number - Pixel width of point dot stroke
-    pointDotStrokeWidth : 1,
-    //Number - amount extra to add to the radius to cater for hit detection outside the drawn point
-    pointHitDetectionRadius : 20,
-    //Boolean - Whether to show a stroke for datasets
-    datasetStroke : true,
-    //Number - Pixel width of dataset stroke
-    datasetStrokeWidth : 2,
-    //Boolean - Whether to fill the dataset with a colour
-    datasetFill : true,
-    //String - A legend template
-    legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
-	};
-	var ctx = document.getElementById("myChart").getContext("2d");
-	var myLineChart = new Chart(ctx).Line(data, options);
+    var chartData = [];
 
-  return {Labels : data.labels, Data : [data.datasets[0].data, data.datasets[1].data]};
+    var chart = new CanvasJS.Chart("myChart",
+            {
+                zoomEnabled: true,
+                title :{
+                    text: "Neurons spike activity"
+                },
+                data: chartData
+            });
+    var updateInterval = 20;
+
+    var updateChart = function () {
+        for(var i=0;i<chartData.length; i++){
+            //set 0 to all charts
+            chartData[i].dataPoints.push({x:Date.now(), y: 0});
+
+            while(chartData[i].dataPoints[0].x < Date.now()-5000){
+                chartData[i].dataPoints.shift();
+            }
+        }
+        //redraw chart
+        chart.render();
+
+    };
+
+    // update chart after specified time.
+    setInterval(function(){updateChart()}, updateInterval);
+
+    function addChart(id) {
+        var newChart = {
+            type: "area",
+            label : id,
+            xValueType: "dateTime",
+            dataPoints: []
+        }
+
+        chartData.push(newChart);
+
+        console.log('add neuron to chart '+id);
+    }
+    function updateData(id, value){
+        for(var i=0;i<chartData.length;i++){
+            if(chartData[i].label === id){
+                chartData[i].dataPoints.shift();
+
+                chartData[i].dataPoints.push({x: Date.now(), y: value});
+
+                break;
+            }
+        }
+    }
+    function removeChart(id){
+
+    }
+
+    return {
+        add : addChart,
+        spike : updateData ,
+        remove : removeChart
+    }
 });
 app.service("SceneDrawing", function($window){
-  var scene, renderer, camera, person, controls;
+    var camera, controls, scene, renderer, light;
 
-  // set some camera attributes
-	var VIEW_ANGLE = 45,
-	    ASPECT = $window.innerWidth / $window.innerHeight,
-	    NEAR = 0.1,
-	    FAR = 20000;
+    init();
+    animate();
 
-	// get the DOM element to attach to
-	// - assume we've got jQuery to hand
-	var container = document.getElementById('container');
+    function init() {
 
-	// create a WebangularGL renderer, camera
-	// and a scene
-	renderer = new THREE.WebGLRenderer();
+        scene = new THREE.Scene();
 
-	// start the renderer
-	renderer.setSize($window.innerWidth , $window.innerHeight);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
 
-	// attach the render-supplied DOM element
-	container.appendChild( renderer.domElement );
+        var container = document.getElementById( 'container' );
+        container.appendChild( renderer.domElement );
 
+        camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera.position.y = 7;
+        camera.position.z = 20;
 
-	camera = new THREE.PerspectiveCamera(  VIEW_ANGLE,
-	                                ASPECT,
-	                                NEAR,
-	                                FAR  );
-	// the camera starts at 0,0,0 so pull it back
-	camera.position.y = 7;
-	camera.position.z = 20;
+        controls = new THREE.OrbitControls( camera, renderer.domElement );
 
-	// controls = new THREE.OrbitControls( camera );
-	// controls.damping = 0.2;
-	// controls.addEventListener( 'change', render );
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.enableZoom = true;
 
-	scene = new THREE.Scene();
+        //Grid
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push( new THREE.Vector3( - 50, 0, 0 )  );
+        geometry.vertices.push( new THREE.Vector3( 50, 0, 0 ) );
 
-	// create a point light
-	var pointLight = new THREE.PointLight( 0xFFFFFF );
+        var linesMaterial = new THREE.MeshLambertMaterial(
+        {
+            color: 0x444444
+        });
 
-	// set its position
-	pointLight.position.x = 10;
-	pointLight.position.y = 50;
-	pointLight.position.z = 130;
+        for ( var i = 0; i <= 20; i ++ ) {
 
-	// add to the scene
-	scene.add(pointLight);
+            var line = new THREE.Line( geometry, linesMaterial );
+            line.position.z = ( i * 5 ) - 50;
+            scene.add( line );
 
-	// create a point light
-	var upperLight = new THREE.PointLight( 0xFFFFFF );
+            var line = new THREE.Line( geometry, linesMaterial );
+            line.position.x = ( i * 5 ) - 50;
+            line.rotation.y = 90 * Math.PI / 180;
+            scene.add( line );
 
-	// set its position
-	upperLight.position.x = -50;
-	upperLight.position.y = 200;
-	upperLight.position.z = -50;
+        }
+        // lights
 
-	// add to the scene
-	scene.add(upperLight);
+        light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set( 1, 1, 1 );
+        scene.add( light );
 
-	//Grid
-	var geometry = new THREE.Geometry();
-	geometry.vertices.push( new THREE.Vector3( - 50, 0, 0 )  );
-	geometry.vertices.push( new THREE.Vector3( 50, 0, 0 ) );
+        light = new THREE.DirectionalLight( 0x002288 );
+        light.position.set( -1, -1, -1 );
+        scene.add( light );
 
-	var linesMaterial = new THREE.MeshLambertMaterial(
-	{
-	    color: 0x444444
-	});
+        light = new THREE.AmbientLight( 0x222222 );
+        scene.add( light );
 
-	for ( var i = 0; i <= 20; i ++ ) {
+        window.addEventListener( 'resize', onWindowResize, false );
 
-		var line = new THREE.Line( geometry, linesMaterial );
-		line.position.z = ( i * 5 ) - 50;
-		scene.add( line );
+    }
 
-		var line = new THREE.Line( geometry, linesMaterial );
-		line.position.x = ( i * 5 ) - 50;
-		line.rotation.y = 90 * Math.PI / 180;
-		scene.add( line );
+    function onWindowResize() {
 
-	}
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
 
-	window.addEventListener( 'resize', onWindowResize, false );
+        renderer.setSize( window.innerWidth, window.innerHeight );
 
-	animate();
+    }
 
-  function render(){
-  	renderer.render(scene, camera);
-  }
-  function onWindowResize() {
+    function animate() {
 
-  	camera.aspect = $window.innerWidth / $window.innerHeight;
-  	camera.updateProjectionMatrix();
+        requestAnimationFrame( animate );
 
-  	renderer.setSize( $window.innerWidth, $window.innerHeight );
+        controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
 
-  	render();
-  }
+        render();
 
-  function animate() {
+    }
 
-  	requestAnimationFrame(animate);
-  	//controls.update();
+    function render() {
 
-  }
-  var addNode = function (pos, axon, size){
-  	// create the sphere's material
-  	var sphereMaterial = new THREE.MeshLambertMaterial(
-  	{
-  	    color: 0x99EE99
-  	});
+        renderer.render( scene, camera );
 
-  	var geometryPos = new THREE.SphereGeometry( size, size, size );
+    }
+    var addNode = function (pos, axon, size){
+    // create the sphere's material
+    var sphereMaterial = new THREE.MeshLambertMaterial(
+    {
+        color: 0x99EE99
+    });
 
-  	var meshPos = new THREE.Mesh( geometryPos, sphereMaterial );
-  	meshPos.position.x = pos.x;
-  	meshPos.position.y = pos.y;
-  	meshPos.position.z = pos.z;
+    var geometryPos = new THREE.SphereGeometry( size, size, size );
 
-  	scene.add( meshPos );
+    var meshPos = new THREE.Mesh( geometryPos, sphereMaterial );
+    meshPos.position.x = pos.x;
+    meshPos.position.y = pos.y;
+    meshPos.position.z = pos.z;
 
-  	var geometryAxon = new THREE.SphereGeometry( size/3, size/3, size/3 );
+    scene.add( meshPos );
 
-  	var meshAxon = new THREE.Mesh( geometryAxon, sphereMaterial );
-  	meshAxon.position.x = axon.x;
-  	meshAxon.position.y = axon.y;
-  	meshAxon.position.z = axon.z;
+    var geometryAxon = new THREE.SphereGeometry( size/3, size/3, size/3 );
 
-  	scene.add( meshAxon );
+    var meshAxon = new THREE.Mesh( geometryAxon, sphereMaterial );
+    meshAxon.position.x = axon.x;
+    meshAxon.position.y = axon.y;
+    meshAxon.position.z = axon.z;
 
-  	var lineGeometry = new THREE.Geometry();
-  	lineGeometry.vertices.push(new THREE.Vector3(pos.x, pos.y, pos.z));
-  	lineGeometry.vertices.push(new THREE.Vector3(axon.x, axon.y, axon.z));
+    scene.add( meshAxon );
 
-  	var lineAxon = new THREE.Line(lineGeometry, sphereMaterial);
+    var lineGeometry = new THREE.Geometry();
+    lineGeometry.vertices.push(new THREE.Vector3(pos.x, pos.y, pos.z));
+    lineGeometry.vertices.push(new THREE.Vector3(axon.x, axon.y, axon.z));
 
-  	scene.add( lineAxon );
+    var lineAxon = new THREE.Line(lineGeometry, sphereMaterial);
 
-  	render();
-  }
-  var bindNodes = function(source, target){
-  	var lineGeometry = new THREE.Geometry();
-  	lineGeometry.vertices.push(new THREE.Vector3(source.x, source.y, source.z));
-  	lineGeometry.vertices.push(new THREE.Vector3(target.x, target.y, target.z));
-  	var lineMaterial = new THREE.MeshLambertMaterial(
-  	{
-  	    color: 0xCC9999
-  	});
-  	var line3 = new THREE.Line(lineGeometry, lineMaterial);
-  	scene.add(line3);
+    scene.add( lineAxon );
 
-  	render();
-  }
-  return {add : addNode, bind : bindNodes};
+    render();
+    }
+    var bindNodes = function(source, target){
+    var lineGeometry = new THREE.Geometry();
+    lineGeometry.vertices.push(new THREE.Vector3(source.x, source.y, source.z));
+    lineGeometry.vertices.push(new THREE.Vector3(target.x, target.y, target.z));
+    var lineMaterial = new THREE.MeshLambertMaterial(
+    {
+        color: 0xCC9999
+    });
+    var line3 = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(line3);
+
+    render();
+    }
+    return {add : addNode, bind : bindNodes};
 })

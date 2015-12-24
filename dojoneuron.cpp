@@ -55,9 +55,6 @@ void dojoNeuron::process(){
 
         //next check right now (in 1 ms)
         nextCheck = now+1;
-
-        //DEBUG log spike
-        //emit neuronEvent(QString::number(id)+":spike");
     }
     //pumping
     else{
