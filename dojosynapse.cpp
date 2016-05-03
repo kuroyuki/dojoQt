@@ -33,7 +33,7 @@ void dojoSynapse::handleSpike(float terminals){
     //release mediator from terminals to cleft
     cleft += terminals;
 }
-void dojoSynapse::changePermability(qint64 now){
+void dojoSynapse::changePermeability(qint64 now){
     //qint64 diff = now-lastAction;
     //means AP happend
     //if this synapse is took part in AP e.g. lastAction < 20 ms

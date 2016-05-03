@@ -44,7 +44,7 @@ void dojoNeuron::process(){
 
         //change sources synaptic coefficients  (Hebb rule??)
         foreach (dojoSynapse* synapse, sources){
-            synapse->changePermability(now);
+            synapse->changePermeability(now);
         }
 
         //reset voltage to default

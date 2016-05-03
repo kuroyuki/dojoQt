@@ -8,13 +8,14 @@
 
 app.factory('Tables', function () {
   var table = [];
+   //push output node
   return {
     neurons : table, 
     getNeuron : function(id){
       var data;
 
       for(var i=0; i<table.length; i++)
-        if(table[i].id == id)
+        if(table[i].id === id)
           data = table[i];
 
       return data;
@@ -24,7 +25,7 @@ app.factory('Tables', function () {
     },
     updateNeuron : function (data){
        for(var i=0; i<table.length; i++)
-        if(table[i].id == data.id){
+        if(table[i].id === data.id){
           table[i] = data;
           return;
         }

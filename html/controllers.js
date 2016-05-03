@@ -26,7 +26,7 @@ app.controller("MainController", function(Websocket, Tables, SceneDrawing, Chart
         if(sourceNeuron != null && targetNeuron != null){
             //update source with target
             sourceNeuron.targets.push(targetNeuron.id);
-            Table.updateNeuron(sourceNeuron);
+            Tables.updateNeuron(sourceNeuron);
 
             var source = {
                 id : data.source,
@@ -34,7 +34,7 @@ app.controller("MainController", function(Websocket, Tables, SceneDrawing, Chart
                 perm : data.perm
             }
             targetNeuron.sources.push(source);
-            Table.updateNeuron(targetNeuron);
+            Tables.updateNeuron(targetNeuron);
 
             //draw it
             SceneDrawing.bind(sourceNeuron.axon, targetNeuron.pos);

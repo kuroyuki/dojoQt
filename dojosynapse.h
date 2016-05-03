@@ -14,7 +14,7 @@ public :
     dojoSynapse(QString syn, dojoStorage* str);
     void handleSpike(float terminals);
     float getVoltage(qint64 now);
-    void changePermability(qint64 now);
+    void changePermeability(qint64 now);
 
     qint64 lastAction;
 

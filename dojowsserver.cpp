@@ -176,8 +176,11 @@ void dojoWsServer::processTextMessage(QString message){
         network->subscribeWsForSpikes(id);
     }
 }
-void dojoWsServer::socketDisconnected(){
-    //qDebug()<<"WS client disconnected :";
+void dojoWsServer::socketDisconnected(){    
+    /*
+     * TODO
+     * Implement spike unsubscribing. It have to call dojoNetwork->unsubscribeWsForSpikes(dojoID);
+    */
 
     QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
        if (pClient) {

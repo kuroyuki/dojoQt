@@ -15,54 +15,21 @@ Widget::Widget(QWidget *parent) :
     //Dojo server setup
     network = new dojoNetwork();    
 
-    dojoID node1 = network->createNode(QVector3D(0,0,0), QVector3D(0,0,2), 0.99);
-    dojoID node2 = network->createNode(QVector3D(2,0,0), QVector3D(2,0,2), 0.99);
-    dojoID node3 = network->createNode(QVector3D(0,2,0), QVector3D(0,2,2), 0.99);
-    dojoID node4 = network->createNode(QVector3D(2,2,0), QVector3D(2,2,2), 0.99);
-    /*
-    //output nodes
-    dojoID outNode1 = network->createNode(QVector3D(0,0,4), QVector3D(0,0,6), 0.99);
-    dojoID outNode2 = network->createNode(QVector3D(2,0,4), QVector3D(2,0,6), 0.99);
-    dojoID outNode3 = network->createNode(QVector3D(0,2,4), QVector3D(0,2,6), 0.99);
-    dojoID outNode4 = network->createNode(QVector3D(2,2,4), QVector3D(2,2,6), 0.99);
+    dojoID node1 = network->createNode(QVector3D(0,0,1), QVector3D(0,0,3), 0.6);
+    dojoID node2 = network->createNode(QVector3D(0,0,4), QVector3D(0,0,5), 0.5);
 
-    //internodes
-    dojoID interNode1 = network->createNode(QVector3D(-0.5,-0.5, 3.1), QVector3D(-0.5,-0.5, 3.6), 0.1);
-    */
-    //bind inputs
+    network->registerInput(-1);
     network->bindNodes(-1, node1);
-    network->bindNodes(-2, node2);
-    network->bindNodes(-3, node3);
-    network->bindNodes(-4, node4);
-    /*
-    //bind nodes
-    for(int i=1;i<5;i++)
-        for(int j=5;j<9;j++)
-            network->bindNodes(i, j);
 
-    //interconnections
-    network->bindNodes(node1, interNode1);
-    network->bindNodes(interNode1, outNode1);
-
-    //bind outputs
-    network->bindNodes(outNode1,-10);
-    network->bindNodes(outNode2,-10);
-    network->bindNodes(outNode3,-10);
-    network->bindNodes(outNode4,-10);
-    */
-
-    //bind outputs
-    network->bindNodes(node1,-10);
-    network->bindNodes(node2,-10);
-    network->bindNodes(node3,-10);
-    network->bindNodes(node4,-10);
+    network->bindNodes(node1, node2);
+    network->registerOutput(-100);
+    network->bindNodes(node2, -100);
 
     //Drawing setup
     point.setX(qrand()%this->width());
     point.setY(qrand()%this->height());
 
     //starting all the stuff
-
     network->start();
 
     //init dojo client
@@ -107,19 +74,20 @@ void Widget::slotTimeout(){
 }
 
 void Widget::updateData(dojoAp ap){
-    if(ap.id == 1){
+    //sort by source of spike
+    if(ap.id == -101){
         point.setX(point.x()-ap.data);
         point.setY(point.y()-ap.data);
     }
-    else if(ap.id == 2){
+    else if(ap.id == -102){
         point.setX(point.x()+ap.data);
         point.setY(point.y()-ap.data);
     }
-    else if(ap.id == 3){
+    else if(ap.id == -103){
         point.setX(point.x()-ap.data);
         point.setY(point.y()+ap.data);
     }
-    else if(ap.id == 4){
+    else if(ap.id == -104){
         point.setX(point.x()+ap.data);
         point.setY(point.y()+ap.data);
     }

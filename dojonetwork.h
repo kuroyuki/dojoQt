@@ -22,8 +22,11 @@ public:
     explicit dojoNetwork(QObject *parent = 0);
     void start();
     dojoID createNode(QVector3D pos, QVector3D axon, float size);
+    void registerInput(dojoID inputID);
+    void registerOutput(dojoID outputID);
     void bindNodes(dojoID source, dojoID target);
     void subscribeWsForSpikes(dojoID neuron);
+    void unsubscribeWsForSpikes(dojoID neuron);
 
 signals:
     void networkEvent(QString event);

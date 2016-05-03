@@ -160,3 +160,52 @@ void dojoNetwork::restoreNetwork(){
 void dojoNetwork::subscribeWsForSpikes(dojoID neuron){
     connect(neurons[neuron], SIGNAL(spike(dojoID,float)), ws, SLOT(handleSpike(dojoID,float)));
 }
+void dojoNetwork::unsubscribeWsForSpikes(dojoID neuron){
+    disconnect(neurons[neuron], SIGNAL(spike(dojoID,float)), ws, SLOT(handleSpike(dojoID,float)));
+}
+void dojoNetwork::registerInput(dojoID inputID){
+    if(!storage->isNeuronExist(inputID)){
+        //find free space for new input in input area
+        bool isContinue = true;
+        int startX=0;
+        int startY=1;
+        do{
+            if(storage->getNeuronsInArea(QVector3D(startX,startY,-3), 0.4).length() == 0){
+                //add newInput
+                storage->addNeuron(inputID, QVector3D(startX,startY,-3), QVector3D(startX,startY,-3), 0.4, 1);
+                //exit loop
+                isContinue = false;
+            }
+            startX += 1;
+            //need new row
+            if(startX > 8){
+                startX = 0;
+                startY += 1;
+            }
+        }
+        while(isContinue);
+    }
+}
+void dojoNetwork::registerOutput(dojoID outputID){
+    if(!storage->isNeuronExist(outputID)){
+        //find free space for new input in input area
+        bool isContinue = true;
+        int startX=0;
+        int startY=-1;
+        do{
+            if(storage->getNeuronsInArea(QVector3D(startX,startY,-3), 0.4).length() == 0){
+                //add newInput
+                storage->addNeuron(outputID, QVector3D(startX,startY,-3), QVector3D(startX,startY,-3), 0.4, 1);
+                //exit loop
+                isContinue = false;
+            }
+            startX += 1;
+            //need new row
+            if(startX > 8){
+                startX = 0;
+                startY -= 1;
+            }
+        }
+        while(isContinue);
+    }
+}

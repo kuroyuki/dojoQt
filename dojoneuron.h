@@ -35,8 +35,10 @@ public slots:
     virtual void handleSpike(dojoID source, float terminals);
     virtual void slotUdpReadyRead(){};
 
+protected:
+    dojoStorage* storage;
+
 private :
-     dojoStorage* storage;
      dojoID id;
 
      QHash<dojoID, dojoSynapse*>sources;

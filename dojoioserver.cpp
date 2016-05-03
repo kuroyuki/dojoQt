@@ -37,7 +37,11 @@ void dojoIOServer::slotUdpReadyRead(){
             dojoID source = *reinterpret_cast<const int*>(datagram.left(4).data());
             float value = *reinterpret_cast<const float*>(datagram.mid(4,8).data());
 
-            emit spike(source, value);
+            //if input is registered
+            if(storage->isNeuronExist(source))
+                //send spike from source to the network
+                //if no subscribers for the source - nothing should happen
+                emit spike(source, value);
 
             datagram.remove(0,8);
         }
