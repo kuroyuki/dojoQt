@@ -103,7 +103,7 @@ void dojoWsServer::eventHandler(QString event){
     for(int i =0;i<wsClients.length();i++){
         wsClients[i]->sendTextMessage(QString::fromUtf8(jDoc.toJson()));
     }
-    qDebug()<<"dojoWS sent to clients:"<< QString::fromUtf8(jDoc.toJson(QJsonDocument::Compact));
+    //qDebug()<<"dojoWS sent to clients:"<< QString::fromUtf8(jDoc.toJson(QJsonDocument::Compact));
 }
 void dojoWsServer::processTextMessage(QString message){
     qDebug()<<"WS client message :"<<message;
@@ -161,9 +161,9 @@ void dojoWsServer::processTextMessage(QString message){
             float size = data.take(param).toDouble();
             storage->setNeuronSize(neuron, size);
         }
-        else if(param == "terminals"){
-            float term = data.take(param).toDouble();
-            storage->setNeuronTerminals(neuron, term);
+        else if(param == "probability"){
+            float prob = data.take(param).toDouble();
+            storage->setNeuronReleaseProbability(neuron, prob);
         }
     }
     //update existing synapse params
@@ -211,7 +211,7 @@ QJsonObject dojoWsServer::parseEvent(QString event){
                 data.insert("pos", posJson);
                 data.insert("axon", axonJson);
                 data.insert("size", list[15].toFloat());
-                data.insert("terminals", list[17].toFloat());
+                data.insert("probability", list[17].toFloat());
 
                 json.insert("data", data);
             }

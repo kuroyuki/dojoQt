@@ -21,7 +21,7 @@ dojoNetwork::dojoNetwork(QObject *parent) : QObject(parent)
     timer = new QTimer();
     timeout = 10;
 
-    //processing neurnos upon timer signals
+    //processing neurons upon timer signals
     connect(timer, SIGNAL(timeout()), this, SLOT(process()));
 
     //bind spike from IO for immedate handling
@@ -60,7 +60,7 @@ dojoID dojoNetwork::createNode(QVector3D pos, QVector3D axon, float size){
         dojoID id = storage->getNextID();
 
         neurons[id] = new dojoNeuron(storage, id);
-        storage->addNeuron(id, pos, axon, size, 1);
+        storage->addNeuron(id, pos, axon, size, 0.5);
         storage->setNextID(id+1);
 
         connect(neurons[id], SIGNAL(neuronEvent(QString)), logger, SLOT(logEntry(QString)));
@@ -78,6 +78,7 @@ dojoID dojoNetwork::createNode(QVector3D pos, QVector3D axon, float size){
 }
 void dojoNetwork::bindNodes(dojoID source, dojoID target){
     QString synapse = QString::number(source)+":"+QString::number(target);
+
     //nothing to do if already exists
     if(storage->isSynapseExist(synapse))
         return;
@@ -127,8 +128,10 @@ void dojoNetwork::restoreNetwork(){
     QList<dojoID> nodes = storage->getAllNeurons();
     for(int i=0;i<nodes.size();i++){
         if(!neurons.contains(nodes[i])){
-            neurons[nodes[i]] = new dojoNeuron(storage, nodes[i]);
-            connect(neurons[nodes[i]], SIGNAL(neuronEvent(QString)), logger, SLOT(logEntry(QString)));
+            if(nodes[i] >= 0){
+                neurons[nodes[i]] = new dojoNeuron(storage, nodes[i]);
+                connect(neurons[nodes[i]], SIGNAL(neuronEvent(QString)), logger, SLOT(logEntry(QString)));
+            }
             emit networkEvent("restore neuron "+QString::number(nodes[i]));
         }
     }

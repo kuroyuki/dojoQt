@@ -11,8 +11,6 @@
 #include "dojowsserver.h"
 #include "dojologger.h"
 
-#define DEFAULT_PERM 5 //default permability for all new synapses
-
 class dojoWsServer;
 
 class dojoNetwork : public QObject
@@ -36,6 +34,8 @@ public slots:
 
 private:
     void restoreNetwork();
+
+    const float DEFAULT_PERM = 1.0; //default permability for all new synapses
 
     dojoStorage* storage;
     dojoIOServer* io;

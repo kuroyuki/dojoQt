@@ -15,15 +15,20 @@ Widget::Widget(QWidget *parent) :
     //Dojo server setup
     network = new dojoNetwork();    
 
-    dojoID node1 = network->createNode(QVector3D(0,0,1), QVector3D(0,0,3), 0.6);
+    dojoID node1 = network->createNode(QVector3D(0,0,1), QVector3D(0,0,3), 0.5);
     dojoID node2 = network->createNode(QVector3D(0,0,4), QVector3D(0,0,5), 0.5);
 
     network->registerInput(-1);
     network->bindNodes(-1, node1);
 
+    network->registerInput(-2);
+    network->bindNodes(-2, node2);
+
+
     network->bindNodes(node1, node2);
-    network->registerOutput(-100);
-    network->bindNodes(node2, -100);
+
+//    network->registerOutput(-101);
+//    network->bindNodes(node3, -101);
 
     //Drawing setup
     point.setX(qrand()%this->width());

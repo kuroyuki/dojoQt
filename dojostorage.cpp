@@ -30,7 +30,7 @@ dojoID dojoStorage::getNextID(){
 
     return list[1].toInt();
 }
-void dojoStorage::addNeuron(dojoID id, QVector3D position, QVector3D axon, float size, float terminals){
+void dojoStorage::addNeuron(dojoID id, QVector3D position, QVector3D axon, float size, float probability){
     QString str;
     str = "hmset neurons:"+QString::number(id)+
             " x "+QString::number(position.x())+
@@ -40,7 +40,7 @@ void dojoStorage::addNeuron(dojoID id, QVector3D position, QVector3D axon, float
             " axon_y "+QString::number(axon.y())+
             " axon_z "+QString::number(axon.z())+
             " size "+ QString::number(size)+
-            " terminals "+QString::number(terminals);
+            " probability "+QString::number(probability);
 
     writeCommand(str);
 
@@ -86,9 +86,9 @@ void dojoStorage::setNeuronSize(dojoID id, float new_size){
 
     emit storageEvent(str);
 }
-void dojoStorage::setNeuronTerminals(dojoID id, float newTerminals){
+void dojoStorage::setNeuronReleaseProbability(dojoID id, float newProbability){
     QString str;
-    str = "hset neurons:"+QString::number(id)+" terminals "+QString::number(newTerminals);
+    str = "hset neurons:"+QString::number(id)+" probability "+QString::number(newProbability);
     writeCommand(str);
 
     emit storageEvent(str);
@@ -118,9 +118,9 @@ float dojoStorage::getNeuronSize(dojoID id){
 
     return list[1].toFloat();
 }
-float dojoStorage::getNeuronTerminals(dojoID id){
+float dojoStorage::getNeuronReleaseProbability(dojoID id){
     QString str;
-    str = "hget neurons:"+QString::number(id)+" terminals ";
+    str = "hget neurons:"+QString::number(id)+" probability ";
 
     QStringList list = writeCommand(str).split("\r\n");
 

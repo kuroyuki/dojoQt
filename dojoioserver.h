@@ -13,7 +13,7 @@ class dojoIOServer : public dojoNeuron
 {
 public:
     dojoIOServer(dojoStorage* storage);
-    void handleSpike(dojoID source, float terminals);
+    void handleSpike(dojoID source, float transmiterValue);
 
     void addInput(dojoID source, dojoNeuron* target);
 

@@ -18,18 +18,18 @@ public:
     dojoID getNextID();
 
     //Neurons API
-    void addNeuron(dojoID id, QVector3D position, QVector3D axon, float size, float terminals);
+    void addNeuron(dojoID id, QVector3D position, QVector3D axon, float size, float probability);
     bool isNeuronExist(dojoID id);
 
     void setNeuronPosition(dojoID id, QVector3D new_position);
     void setNeuronAxon(dojoID id, QVector3D new_axon);
     void setNeuronSize(dojoID id, float new_size);
-    void setNeuronTerminals(dojoID id, float newTerminals);
+    void setNeuronReleaseProbability(dojoID id, float newProbability);
 
     QVector3D getNeuronPosition(dojoID id);
     QVector3D getNeuronAxon(dojoID id);
     float getNeuronSize(dojoID id);
-    float getNeuronTerminals(dojoID id);
+    float getNeuronReleaseProbability(dojoID id);
 
     void deleteNeuron(dojoID id);
 
